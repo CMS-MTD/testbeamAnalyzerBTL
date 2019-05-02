@@ -4,14 +4,9 @@
 #Date: April 30, 2019
 #Purpose: Worker code to process/analyze testbeam data (loosely based on Andrea Benaglia's analyze_FNAL.C code)
 
-import argparse, os, sys
-import numpy as np
-import ROOT as rt
-import root_numpy as rtnp
-import lib.globalVariables
-from lib.channelHandler import *
-from lib.fileHandler import *
+import os, sys, argparse
 
+# *** 0. setup parser for command line
 parser = argparse.ArgumentParser()
 parser.add_argument("--bar", help="which bar to process, e.g. box1, box2, box3, single")
 parser.add_argument("--firstRun", help="first run to analyze")
@@ -76,6 +71,15 @@ else:
         print '-- Setting biasVoltage = {0}'.format(args.biasVoltage)
 
 
+
+import numpy as np
+import ROOT as rt
+import root_numpy as rtnp
+import lib.globalVariables 
+from lib.channelHandler import *
+from lib.fileHandler import *
+
+
 ## *** 1. Parse together output directory and create if does not exist
 ## ** A. Top level directory of which runs
 outputDir = 'Runs_'+args.firstRun+'to'+args.lastRun
@@ -111,13 +115,8 @@ dataFolder = '/eos/uscms/store/group/cmstestbeam/2019_04_April_CMSTiming/VME/Rec
 if args.isCondor==True:
     dataFolder = 'root://cmseos.fnal.gov//store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
 
-print('base pre: ', minX, maxX, minY, maxY, lowerPosCutX)
-print('base pre: ', ampch_id[1])
-setChannelData( args.bar, int(args.firstRun))
-print('base post: ', minX, maxX, minY, maxY, lowerPosCutX)
-print('base post: ', ampch_id[1])
-
+ch = setChannelData( args.bar, int(args.firstRun))
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
-calculatePeakPositionMIP( pulse, args.timeAlgo)
+calculatePeakPositionMIP( pulse, ch, args.timeAlgo)
 
