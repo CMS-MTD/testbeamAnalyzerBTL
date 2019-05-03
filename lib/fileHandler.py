@@ -8,6 +8,7 @@ from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas
 from ROOT import kRed, kBlack, kBlue, kOrange
 from ROOT import gPad, gStyle
 from lib.globalVariables import *
+import lib.dataQualityHandler as dq
 from time import sleep
 
 
@@ -20,64 +21,18 @@ gStyle.SetTitleOffset(1.80, "Y");
 gStyle.SetTitleOffset(1.60, "Z");
 
 
-def returnNumberOfBinsAboveAmpThreshold( _profile, _threshold = 0.35 ):
+def printCanvas( _canvas, _outputDir, _timeAlgo):
 
-    _binsAboveThreshold = 0 
+    _canvas.Draw();
+    _algoLabel = TLatex(0.74, 0.96, _timeAlgo)
+    _algoLabel.SetNDC(True)
+    _algoLabel.SetTextFont(42)
+    _algoLabel.SetTextSize(0.03)
+    _algoLabel.Draw("same");
+    _c0.Print( '{0}/{1}_{2}.png'.format( _outputDir, c0.GetTitle, _timeAlgo ) )
 
-    for _iBin in range(1, _profile.GetNbinsX()):
-        if _profile.GetBinContent(_iBin) > _threshold and _profile.GetBinContent(_iBin-1) > _threshold: 
-            _binsAboveThreshold += 1
-  
-    #print (_binsAboveThreshold)
-    return _binsAboveThreshold
-
-
-def checkTrackingSynchronization( _filename, _iRun):
-    _fileToCheck = TFile.Open( _filename );
-    if _fileToCheck.GetListOfKeys().Contains("pulse")==False:
-        return False
-
-    _pulse = _fileToCheck.Get("pulse");
-  
-    h_box1_L = TProfile("h_box1_L", "h_box1_L", 30, 10, 35);
-    h_box1_R = TProfile("h_box1_R", "h_box1_R", 30, 10, 35);
-    h_box2_L = TProfile("h_box2_L", "h_box2_L", 30, 10, 35);
-    h_box2_R = TProfile("h_box2_R", "h_box2_R", 30, 10, 35);
-    h_box3_L = TProfile("h_box3_L", "h_box3_L", 30, 10, 35);
-    h_box3_R = TProfile("h_box3_R", "h_box3_R", 30, 10, 35);
-    h_single_L = TProfile("h_single_L", "h_single_L", 30, 10, 35);
-    h_single_R = TProfile("h_single_R", "h_single_R", 30, 10, 35);
-    
-    _pulse.Draw("amp[1] > 400 :  y_dut[0]>>+h_box1_L", "ntracks==1");
-    _pulse.Draw("amp[2] > 400 :  y_dut[0]>>+h_box2_L", "ntracks==1");
-    _pulse.Draw("amp[3] > 400 :  y_dut[0]>>+h_box3_L", "ntracks==1");
-    _pulse.Draw("amp[4] > 400 :  y_dut[0]>>+h_box1_R", "ntracks==1");
-    _pulse.Draw("amp[5] > 400 :  y_dut[0]>>+h_box2_R", "ntracks==1");
-    _pulse.Draw("amp[6] > 400 :  y_dut[0]>>+h_box3_R", "ntracks==1");
-    _pulse.Draw("amp[19] > 200 : y_dut[0]>>+h_single_L", "ntracks==1");
-    _pulse.Draw("amp[20] > 200 : y_dut[0]>>+h_single_R", "ntracks==1");
-
-    _nBinsForSyncedFlag = 2;
-    found_box1_L   = True if returnNumberOfBinsAboveAmpThreshold(h_box1_L) >= _nBinsForSyncedFlag else False
-    found_box2_L   = True if returnNumberOfBinsAboveAmpThreshold(h_box2_L) >= _nBinsForSyncedFlag else False
-    found_box3_L   = True if returnNumberOfBinsAboveAmpThreshold(h_box3_L) >= _nBinsForSyncedFlag else False
-    found_box1_R   = True if returnNumberOfBinsAboveAmpThreshold(h_box1_R) >= _nBinsForSyncedFlag else False
-    found_box2_R   = True if returnNumberOfBinsAboveAmpThreshold(h_box2_R) >= _nBinsForSyncedFlag else False
-    found_box3_R   = True if returnNumberOfBinsAboveAmpThreshold(h_box3_R) >= _nBinsForSyncedFlag else False
-    found_single_L = True if returnNumberOfBinsAboveAmpThreshold(h_single_L) >= _nBinsForSyncedFlag else False
-    found_single_R = True if returnNumberOfBinsAboveAmpThreshold(h_single_R) >= _nBinsForSyncedFlag else False
-
-    # ** A. This is the tightest "goodness" condition possible. looser is potentially an option
-    #if found_box1_L == True and found_box2_L == True and found_box3_L == True and found_box1_R == True and found_box2_R == True and found_box3_R == True and found_single_L == True and found_single_R == True:
-    #** B. This checks tracking using box2+box3+single but skipping box1 (top bar in box)
-    #if found_box2_L == True and found_box3_L == True and found_box2_R == True and found_box3_R == True and found_single_L == True and found_single_R == True:
-    #** C. This checks tracking using box1+box3 but skipping box2 (middle bar and single bar)
-    if found_box1_L == True and found_box3_L == True and found_box1_R == True and found_box3_R == True and found_single_L == True and found_single_R == True:
-        return True
-  
-    return False
-
-
+    return
+               
 
 def returnChain( _dataFolder, _firstRun, _lastRun):
 
@@ -92,7 +47,7 @@ def returnChain( _dataFolder, _firstRun, _lastRun):
             continue
     
 
-        trackingIsSynced = checkTrackingSynchronization( '{0}/RawDataSaver0CMSVMETiming_Run{1}_0_Raw.root'.format(_dataFolder, _iRun), _iRun)
+        trackingIsSynced = dq.checkTrackingSynchronization( '{0}/RawDataSaver0CMSVMETiming_Run{1}_0_Raw.root'.format(_dataFolder, _iRun), _iRun)
 
         if trackingIsSynced == True: 
             myTree.Add( '{0}/RawDataSaver0CMSVMETiming_Run{1}_0_Raw.root'.format(_dataFolder, _iRun) ) # BBT, 4-30-19 
@@ -108,7 +63,7 @@ def returnChain( _dataFolder, _firstRun, _lastRun):
     return myTree
 
 
-def calculatePeakPositionMIP( _chain, _ch, _timeAlgo ):
+def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     """(1) first event loop - to calculate mip peak position"""
 
     # define histograms
@@ -270,7 +225,8 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo ):
         _ch.latexch[_iCh].Draw("same")
 
     c_amp.Update()
-    c_amp.Print("c_amp.png")
+    #c_amp.Print("c_amp.png")
+    printCanvas( c_amp, _outputDir, _timeAlgo)
 
     # ---------------------------- fitting and drawing time peak ----------------------------
     fitTimePeak = TF1("fitTimePeak","gaus",_ch.lowerTimeCut,_ch.upperTimeCut)
@@ -314,6 +270,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo ):
         _ch.latexch[_iCh].Draw("same")
 
     c_time.Update()
-    c_time.Print("c_time.png")
+    #c_time.Print("c_time.png")
+    printCanvas( c_time, _outputDir, _timeAlgo)
 
     sleep(15)

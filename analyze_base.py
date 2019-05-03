@@ -118,5 +118,5 @@ if args.isCondor==True:
 ch = setChannelData( args.bar, int(args.firstRun))
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
-calculatePeakPositionMIP( pulse, ch, args.timeAlgo)
+calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 
