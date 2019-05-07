@@ -119,4 +119,5 @@ pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
 timePeak, timeSigma, mipPeak, h_ampCut = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
-applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
+ampCorrectedMeasurements = applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
+applyPositionCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr, ampCorrectedMeasurements )

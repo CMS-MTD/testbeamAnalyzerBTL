@@ -5,7 +5,7 @@
 #Purpose: Store functions for opening files
 
 from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas, TLine, TBranch, TF1, TLegend, TGraphErrors
-from ROOT import kRed, kBlack, kBlue, kOrange, kMagenta, kYellow
+from ROOT import kRed, kBlack, kBlue, kOrange, kMagenta, kYellow, kViolet
 from ROOT import gPad, gStyle
 from lib.globalVariables import *
 import lib.dataQualityHandler as dq
@@ -449,7 +449,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     chainCounter = 0
     for entry in _chain:
         if chainCounter%5000 ==0:
-            print( '>>> 3nd loop: reading entry {0}/{1}'.format(chainCounter, _chain.GetEntries()) )
+            print( '>>> 3rd loop: reading entry {0}/{1}'.format(chainCounter, _chain.GetEntries()) )
         chainCounter += 1
      
         myX = _chain.x_dut[0]
@@ -678,7 +678,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     sigmaLeft  = np.sqrt( pow(fitdeltat_left.GetParameter(2),2)  - pow(_ch.sigma_ref,2) )    
     sigmaRight = np.sqrt( pow(fitdeltat_right.GetParameter(2),2) - pow(_ch.sigma_ref,2) )    
     sigmaAvg   = np.sqrt( pow(fitdeltat_avg.GetParameter(2),2)   - pow(_ch.sigma_ref,2) )    
-    
+ 
     leg = TLegend(0.65,0.78,0.80,0.93,'',"brNDC")
     leg.SetBorderSize(0)
     leg.SetTextFont(42)
@@ -724,7 +724,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     sigmaRightCorr_err = fitdeltat_right_ampCorr.GetParError(2)
     sigmaAvgCorr_err   = fitdeltat_avg_ampCorr.GetParError(2)
 
-    printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
+    #printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
     
     # ---------------------------- BS cut plots ----------------------------
     fitdeltat_ampCorr_BSCut_L = TF1("fitdeltat_ampCorr_BSCut_L", "gaus", h_deltat_left_ampCorr.GetMean() -h_deltat_left_ampCorr.GetRMS()*2,  h_deltat_left_ampCorr.GetMean() +h_deltat_left_ampCorr.GetRMS()*2)
@@ -993,5 +993,164 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
 
     printCanvas( c_timeRes_vs_XY, _outputDir, _timeAlgo)
 
-    sleep(10)
+    ampCorrectedMeasurements  = [sigmaLeft, sigmaRight, sigmaAvg, fitFunc_corrX, fitFunc_corrDiff, h_deltat_diff, sigmaLeftCorr, sigmaRightCorr, sigmaAvgCorr, h_deltat_left_ampCorr, h_deltat_right_ampCorr, h_deltat_avg_ampCorr, c_timeRes_comp]
+
+    return ampCorrectedMeasurements
+
+
+def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak, _hAmpCut, _ampWalkCorr, _ampCorrectedMeas ):
+    """(4) fourth loop events --> to apply pos correction"""
+
+    # define histograms
+    h_deltat_wei_ampCorr = TH1F("h_deltat_wei_ampCorr", "h_deltat_wei_ampCorr", 6000, _ch.minDeltat, _ch.maxDeltat)
+    h_deltat_avg_ampCorr_diffCorr = TH1F("h_deltat_avg_ampCorr_diffCorr", "h_deltat_avg_ampCorr_diffCorr", 6000, _ch.minDeltat, _ch.maxDeltat)
+    h_deltat_avg_ampCorr_posCorr = TH1F("h_deltat_avg_ampCorr_posCorr", "h_deltat_avg_ampCorr_posCorr", 6000, _ch.minDeltat, _ch.maxDeltat)
+
+    # event loop
+    nSelectedEntries = 0
+    chainCounter = 0
+    for entry in _chain:
+        if chainCounter%5000 ==0:
+            print( '>>> 4th loop: reading entry {0}/{1}'.format(chainCounter, _chain.GetEntries()) )
+        chainCounter += 1
+     
+        myX = _chain.x_dut[0]
+        myY = _chain.y_dut[0]
+    
+        # cut on BS
+        if myX == -999 or myY == -999:
+            continue
+        if( abs(myX-_ch.centerX) > _ch.BSX or abs(myY-_ch.centerY) > _ch.BSY ):
+            continue    
+    
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+    
+        # cut on MCP amp
+        if  _chain.amp[_ch.ampch_id[0]] < _ch.ampmin_cut[0] or _chain.amp[_ch.ampch_id[0]] > _ch.ampmax_cut[0] :
+            continue
+        # cut on MCP time
+        if ( time_ref < max(_timePeak[0] - _timeSigma[0]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) or
+             time_ref > min(_timePeak[0] + _timeSigma[0]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ):
+            continue
+    
+        # set time algorithm
+        time = []
+        if (_timeAlgo == 'LP2_20'):
+            time = _chain.LP2_20
+        elif (_timeAlgo == 'LP2_30'):
+            time = _chain.LP2_30            
+        elif (_timeAlgo == 'LP2_50'):
+            time = _chain.LP2_50
+        elif (_timeAlgo == 'IL_20'):
+            time = _chain.IL_20
+        elif (_timeAlgo == 'IL_30'):
+            time = _chain.IL_30
+        elif (_timeAlgo == 'IL_50'):
+            time = _chain.IL_50
+
+        # selected bar
+        if( _chain.amp[_ch.ampch_id[1]] < max(_mipPeak[1]*_ch.rel_amp_cut_low,_ch.ampmin_cut[1]) ): continue
+        if( _chain.amp[_ch.ampch_id[1]] > min(_mipPeak[1]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[1]) ): continue
+        if( _chain.amp[_ch.ampch_id[2]] < max(_mipPeak[2]*_ch.rel_amp_cut_low,_ch.ampmin_cut[2]) ): continue
+        if( _chain.amp[_ch.ampch_id[2]] > min(_mipPeak[2]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[2]) ): continue
+        if( time[_ch.timech_id[1]] < max(_timePeak[1]-_timeSigma[1]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
+        if( time[_ch.timech_id[1]] > min(_timePeak[1]+_timeSigma[1]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
+        if( time[_ch.timech_id[2]] < max(_timePeak[2]-_timeSigma[2]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
+        if( time[_ch.timech_id[2]] > min(_timePeak[2]+_timeSigma[2]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
+    
+        amp1 = _chain.amp[_ch.ampch_id[1]]
+        amp2 = _chain.amp[_ch.ampch_id[2]]
+        time1 = time[_ch.timech_id[1]]
+        time2 = time[_ch.timech_id[2]]
+        time1_ampCorr = time1 - _ampWalkCorr[1].Eval(amp1) + _ampWalkCorr[1].Eval(_hAmpCut[1].GetMean())
+        time2_ampCorr = time2 - _ampWalkCorr[2].Eval(amp2) + _ampWalkCorr[2].Eval(_hAmpCut[2].GetMean())
+    
+        sigmaLeft        = _ampCorrectedMeas[0]
+        sigmaRight       = _ampCorrectedMeas[1]
+        sigmaAvg         = _ampCorrectedMeas[2]
+        fitFunc_corrX    = _ampCorrectedMeas[3]
+        fitFunc_corrDiff = _ampCorrectedMeas[4]
+        h_deltat_diff    = _ampCorrectedMeas[5]
+
+        deltat_avg = 0.5*(time1+time2) - time_ref
+        deltat_avg_ampCorr = 0.5*(time1_ampCorr+time2_ampCorr) - time_ref
+        deltat_wei_ampCorr = ( time1_ampCorr/pow(sigmaLeft,2) + time2_ampCorr/pow(sigmaRight,2) ) / ( 1/pow(sigmaLeft,2) + 1/pow(sigmaRight,2) ) - time_ref
+
+        posCorr = -1.*fitFunc_corrX.Eval(myX) + fitFunc_corrX.Eval(centerX)
+        diffCorr = -1.*fitFunc_corrDiff.Eval(time2_ampCorr-time1_ampCorr) + fitFunc_corrDiff.Eval(h_deltat_diff.GetMean())
+
+        h_deltat_wei_ampCorr.Fill( deltat_wei_ampCorr )
+        h_deltat_avg_ampCorr_posCorr .Fill( deltat_avg_ampCorr + posCorr )
+        h_deltat_avg_ampCorr_diffCorr.Fill( deltat_avg_ampCorr + diffCorr )
+    
+        nSelectedEntries += 1
+
+    print ('>>> 4th loop: selected entries {0}'.format(nSelectedEntries))
+    
+    c_timeRes_comp = _ampCorrectedMeas[12]
+    c_timeRes_comp.cd(2)
+
+    h_deltat_wei_ampCorr.SetLineColor(kOrange+1)
+    h_deltat_wei_ampCorr.SetLineWidth(2)
+    h_deltat_wei_ampCorr.Draw("same")
+    h_deltat_avg_ampCorr_posCorr.SetLineColor(kViolet+1)
+    h_deltat_avg_ampCorr_posCorr.SetLineWidth(2)
+    h_deltat_avg_ampCorr_posCorr.Draw("same")  
+    
+    fitdeltat_wei_ampCorr = TF1("fitdeltat_wei_ampCorr", "gaus", h_deltat_wei_ampCorr.GetMean()-h_deltat_wei_ampCorr.GetRMS()*2, h_deltat_wei_ampCorr.GetMean()+h_deltat_wei_ampCorr.GetRMS()*2)
+    fitdeltat_wei_ampCorr.SetLineColor(kOrange+1)
+    h_deltat_wei_ampCorr.Fit(fitdeltat_wei_ampCorr, "QR")
+    
+    fitdeltat_avg_ampCorr_posCorr = TF1("fitdeltat_avg_ampCorr_posCorr", "gaus", h_deltat_avg_ampCorr_posCorr.GetMean()-h_deltat_avg_ampCorr_posCorr.GetRMS()*2, h_deltat_avg_ampCorr_posCorr.GetMean()+h_deltat_avg_ampCorr_posCorr.GetRMS()*2)
+    fitdeltat_avg_ampCorr_posCorr.SetLineColor(kViolet+1)
+    h_deltat_avg_ampCorr_posCorr.Fit(fitdeltat_avg_ampCorr_posCorr, "QR")
+    
+    sigmaLeftCorr          = _ampCorrectedMeas[6]
+    sigmaRightCorr         = _ampCorrectedMeas[7]
+    sigmaAvgCorr           = _ampCorrectedMeas[8]
+    h_deltat_left_ampCorr  = _ampCorrectedMeas[9]
+    h_deltat_right_ampCorr = _ampCorrectedMeas[10]
+    h_deltat_avg_ampCorr   = _ampCorrectedMeas[11]
+    sigmaWeiCorr        = np.sqrt(pow(fitdeltat_wei_ampCorr.GetParameter(2),2)         - pow(sigma_ref,2) )
+    sigmaAvgCorrPos     = np.sqrt(pow(fitdeltat_avg_ampCorr_posCorr.GetParameter(2),2) - pow(sigma_ref,2) )
+    sigmaWeiCorr_err    = fitdeltat_wei_ampCorr.GetParError(2)
+    sigmaAvgCorrPos_err = fitdeltat_avg_ampCorr_posCorr.GetParError(2)
+    
+    leg = TLegend(0.5,0.68,0.80,0.93,'',"brNDC")
+    leg.SetBorderSize(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(0.03)
+    leg.SetLineColor(1)
+    leg.SetLineStyle(1)
+    leg.SetLineWidth(1)
+    leg.SetFillColor(0)  
+    leg.AddEntry(h_deltat_left_ampCorr,       '#sigma^{{left}}_{{t}} = {0} ps'.format(round(sigmaLeftCorr*1000,1)), "l")
+    leg.AddEntry(h_deltat_right_ampCorr,      '#sigma^{{right}}_{{t}} = {0} ps'.format(round(sigmaRightCorr*1000,1)), "l")
+    leg.AddEntry(h_deltat_avg_ampCorr,        '#sigma^{{avg}}_{{t}} = {0} ps'.format(round(sigmaAvgCorr*1000,1)), "l")
+    leg.AddEntry(h_deltat_wei_ampCorr,        '#sigma^{{wei}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_avg_ampCorr_posCorr,'#sigma^{{avg+pos}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)), "l")
+    leg.Draw("same")
+
+    printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
+
+    """
+    txtOutputFitInfo << Form("Angle: %d, #sigma^{left}_{t} = %.1f #pm %.1f ps", angleScan, sigmaLeftCorr*1000, sigmaLeftCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    txtOutputFitInfo << Form("Angle: %d, #sigma^{right}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaRightCorr*1000, sigmaRightCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    txtOutputFitInfo << Form("Angle: %d, #sigma^{avg}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaAvgCorr*1000, sigmaAvgCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    txtOutputFitInfo << Form("Angle: %d, #sigma^{avg+pos}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaAvgCorrPos*1000, sigmaAvgCorrPos_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    txtOutputFitInfo << Form("Angle: %d, #sigma^{wei}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaWeiCorr*1000, sigmaWeiCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    
+    double quantileWei    = GetEffSigma( h_deltat_avg_ampCorr );
+    double quantileAvg    = GetEffSigma( h_deltat_wei_ampCorr );
+    double quantileAvgPos = GetEffSigma( h_deltat_avg_ampCorr_posCorr );
+    
+    cout << Form("Angle: %d, #sigma^{avg}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaAvgCorr*1000, sigmaAvgCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    cout << Form("Angle: %d, #sigma^{avg+pos}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaAvgCorrPos*1000, sigmaAvgCorrPos_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    cout << Form("Angle: %d, #sigma^{wei}_{t} = %.1f #pm %.1f ps", angleScan,  sigmaWeiCorr*1000, sigmaWeiCorr_err*1000) << " (" << timeAlgo.c_str() << ")"<< std::endl;
+    
+    std::cout << Form("[QUANTILE] Angle: %d, #sigma^{avg}_{t} = %.1f ps", angleScan,  quantileAvg*1000) <<  std::endl;            
+    std::cout << Form("[QUANTILE] Angle: %d, #sigma^{wei}_{t} = %.1f ps", angleScan,  quantileWei*1000) <<  std::endl;            
+    std::cout << Form("[QUANTILE] Angle: %d, #sigma^{avg+pos}_{t} = %.1f ps", angleScan,  quantileAvgPos*1000) <<  std::endl;            
+    """
+
     return
