@@ -11,7 +11,9 @@ import yaml
 from ROOT import TLatex
 
 def setChannelData( _bar, _firstRun):
-    with open('config/config_v1.yml', 'r') as ymlfile:
+    configName = 'config/config_{0}.yml'.format(_firstRun)
+
+    with open(configName, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)    
 
     #print( cfg[_firstRun][_bar] )
