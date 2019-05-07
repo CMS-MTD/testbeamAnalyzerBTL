@@ -5,7 +5,7 @@
 #Purpose: Store functions for opening files
 
 from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas, TLine, TBranch, TF1
-from ROOT import kRed, kBlack, kBlue, kOrange
+from ROOT import kRed, kBlack, kBlue, kOrange, kMagenta
 from ROOT import gPad, gStyle
 from lib.globalVariables import *
 import lib.dataQualityHandler as dq
@@ -29,7 +29,7 @@ def printCanvas( _canvas, _outputDir, _timeAlgo):
     _algoLabel.SetTextFont(42)
     _algoLabel.SetTextSize(0.03)
     _algoLabel.Draw("same");
-    _c0.Print( '{0}/{1}_{2}.png'.format( _outputDir, c0.GetTitle, _timeAlgo ) )
+    _canvas.Print( '{0}/{1}_{2}.png'.format( _outputDir, _canvas.GetTitle(), _timeAlgo ) )
 
     return
                
@@ -115,18 +115,21 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
                 continue
       
             #this is a very inefficient way to do this, but adaptive branch naming is hard - BBT 05/02/19
+            time = []
             if (_timeAlgo == 'LP2_20'):
-                h_time[_iCh].Fill( _chain.LP2_20[ _ch.timech_id[_iCh]] )
+                time = _chain.LP2_20
             elif (_timeAlgo == 'LP2_30'):
-                h_time[_iCh].Fill( _chain.LP2_30[ _ch.timech_id[_iCh]] )
+                time = _chain.LP2_30            
             elif (_timeAlgo == 'LP2_50'):
-                h_time[_iCh].Fill( _chain.LP2_50[ _ch.timech_id[_iCh]] )
+                time = _chain.LP2_50
             elif (_timeAlgo == 'IL_20'):
-                h_time[_iCh].Fill( _chain.IL_20[ _ch.timech_id[_iCh]] )
+                time = _chain.IL_20
             elif (_timeAlgo == 'IL_30'):
-                h_time[_iCh].Fill( _chain.IL_30[ _ch.timech_id[_iCh]] )
+                time = _chain.IL_30
             elif (_timeAlgo == 'IL_50'):
-                h_time[_iCh].Fill( _chain.IL_50[ _ch.timech_id[_iCh]] )
+                time = _chain.IL_50
+
+            h_time[_iCh].Fill( time[ _ch.timech_id[_iCh]] )
             
             if (_chain.amp[_ch.ampch_id[_iCh]] > _ch.ampmin_cut[_iCh]) and (_chain.amp[_ch.ampch_id[_iCh]] < _ch.ampmax_cut[_iCh]) :
                 h_amp_cut[_iCh].Fill( _chain.amp[_ch.ampch_id[_iCh]] );
@@ -148,8 +151,8 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     y_BS_min = TLine(_ch.minX, _ch.centerY - _ch.BSY, _ch.maxX, _ch.centerY-_ch.BSY)
     y_BS_max = TLine(_ch.minX, _ch.centerY + _ch.BSY, _ch.maxX, _ch.centerY+_ch.BSY)
 
-    print(_ch.centerX - _ch.BSX, _ch.minY, _ch.centerX - _ch.BSX, _ch.maxY)
-    print(_ch.minX, _ch.centerY + _ch.BSY, _ch.maxX, _ch.centerY + _ch.BSY)
+    #print(_ch.centerX - _ch.BSX, _ch.minY, _ch.centerX - _ch.BSX, _ch.maxY)
+    #print(_ch.minX, _ch.centerY + _ch.BSY, _ch.maxX, _ch.centerY + _ch.BSY)
 
     x_BS_min.SetLineColor(kRed)
     x_BS_min.SetLineWidth(2)
@@ -223,6 +226,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
             l_peakAmp.Draw("same")
             
         _ch.latexch[_iCh].Draw("same")
+        c_amp.Update()
 
     c_amp.Update()
     #c_amp.Print("c_amp.png")
@@ -272,5 +276,112 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     c_time.Update()
     #c_time.Print("c_time.png")
     printCanvas( c_time, _outputDir, _timeAlgo)
+    
+    return time_peak, time_sigma, mip_peak
 
-    sleep(15)
+
+def calculateAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak ):
+    """(2) second loop events -  to calculate amp-walk correction"""
+    
+    # define histograms
+    h_deltat         = [TH1F() for i in range(0,_ch.NCH)]
+    h2_deltat_vs_amp = [TH2F() for i in range(0,_ch.NCH)]
+    p_deltat_vs_amp  = [TProfile() for i in range(0,_ch.NCH)]
+    
+    for _iCh in range(0,_ch.NCH):
+        h_deltat[_iCh] = TH1F( 'h_deltat_{0}'.format(_ch.namech[_iCh]), 'h_deltat_{0}'.format(_ch.namech[_iCh]),_ch.nDeltatBins,_ch.minDeltat, _ch.maxDeltat)
+        h2_deltat_vs_amp[_iCh] = TH2F( 'h2_deltat_vs_amp_{0}'.format(_ch.namech[_iCh]), 'h2_deltat_vs_amp_{0}'.format(_ch.namech[_iCh]), _ch.nAmpBins, _ch.ampMin, _ch.ampMax, _ch.nDeltatBins, _ch.minDeltat, _ch.maxDeltat);
+        p_deltat_vs_amp[_iCh] = TProfile( 'p_deltat_vs_amp_{0}'.format(_ch.namech[_iCh]), 'p_deltat_vs_amp_{0}'.format(_ch.namech[_iCh]), _ch.nAmpBins, _ch.ampMin, _ch.ampMax)
+        
+  
+    # event loop
+    nSelectedEntries = 0;
+    nCountedEntries = 0;
+    chainCounter = 0
+    for entry in _chain:
+        if chainCounter%5000 ==0:
+            print( '>>> 2nd loop: reading entry {0}/{1}'.format(chainCounter, _chain.GetEntries()) )
+        chainCounter += 1
+  
+        myX = _chain.x_dut[0]
+        myY = _chain.y_dut[0]
+    
+        # cut on BS
+        if myX == -999 or myY == -999:
+            continue
+        if( abs(myX-_ch.centerX) > _ch.BSX or abs(myY-_ch.centerY) > _ch.BSY ):
+            continue    
+    
+    
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+    
+        # cut on MCP amp
+        if  _chain.amp[_ch.ampch_id[0]] < _ch.ampmin_cut[0] or _chain.amp[_ch.ampch_id[0]] > _ch.ampmax_cut[0] :
+            continue
+        # cut on MCP time
+        if ( time_ref < max(_timePeak[0] - _timeSigma[0]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) or
+             time_ref > min(_timePeak[0] + _timeSigma[0]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ):
+            continue
+    
+        time = []
+        if (_timeAlgo == 'LP2_20'):
+            time = _chain.LP2_20
+        elif (_timeAlgo == 'LP2_30'):
+            time = _chain.LP2_30            
+        elif (_timeAlgo == 'LP2_50'):
+            time = _chain.LP2_50
+        elif (_timeAlgo == 'IL_20'):
+            time = _chain.IL_20
+        elif (_timeAlgo == 'IL_30'):
+            time = _chain.IL_30
+        elif (_timeAlgo == 'IL_50'):
+            time = _chain.IL_50
+
+        for _iCh in range(0,_ch.NCH):
+            if( _chain.amp[_ch.ampch_id[_iCh]] > max(_mipPeak[_iCh]*_ch.rel_amp_cut_low,_ch.ampmin_cut[_iCh]) and
+                _chain.amp[_ch.ampch_id[_iCh]] < min(_mipPeak[_iCh]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[_iCh]) and
+                time[_ch.timech_id[_iCh]] > max(_timePeak[_iCh]-_timeSigma[_iCh]*_ch.nSigmaTimeCut, _ch.lowerTimeCut) and
+                time[_ch.timech_id[_iCh]] < min(_timePeak[_iCh]+_timeSigma[_iCh]*_ch.nSigmaTimeCut, _ch.upperTimeCut) ):
+                
+                h_deltat[_iCh].Fill( time[_ch.timech_id[_iCh]]-time_ref )
+                h2_deltat_vs_amp[_iCh].Fill( _chain.amp[_ch.ampch_id[_iCh]],time[_ch.timech_id[_iCh]]-time_ref )
+                p_deltat_vs_amp[_iCh].Fill( _chain.amp[_ch.ampch_id[_iCh]],time[_ch.timech_id[_iCh]]-time_ref )
+                nCountedEntries += 1
+        nSelectedEntries+= 1
+  
+    print( '>>> 2nd loop: selected entries {0}'.format(nSelectedEntries))
+    print( '>>> 2nd loop: counted entries {0}'.format(nCountedEntries))
+
+    # ---------------------------- fitting and drawing time walk correction ----------------------------
+    fitAmpCorr = [TF1() for i in range(0,_ch.NCH)]
+
+    c_time_vs_amp = TCanvas("c_time_vs_amp","c_time_vs_amp",1000,500*((_ch.NCH-1))/2)
+    c_time_vs_amp.Divide(2,(_ch.NCH-1)/2)
+  
+    for _iCh in range(1,_ch.NCH):
+        c_time_vs_amp.cd(_iCh)
+    
+        h2_deltat_vs_amp[_iCh].SetStats(0)
+        h2_deltat_vs_amp[_iCh].GetYaxis().SetRangeUser(h_deltat[_iCh].GetMean()-5.*h_deltat[_iCh].GetRMS(),h_deltat[_iCh].GetMean()+5.*h_deltat[_iCh].GetRMS())
+        h2_deltat_vs_amp[_iCh].SetTitle(";#Deltat [ns]; max. amplitude [mV]")
+        h2_deltat_vs_amp[_iCh].Draw("COLZ")
+        p_deltat_vs_amp[_iCh].SetMarkerStyle(20)
+        p_deltat_vs_amp[_iCh].SetMarkerSize(0.7)
+        p_deltat_vs_amp[_iCh].SetMarkerColor(kMagenta)
+        p_deltat_vs_amp[_iCh].Draw("same")
+    
+        #fitAmpCorr[_iCh] = new TF1(Form("fitAmpCorr_%s", namech[_iCh].c_str()),"[0]*log([1]*x)+[2]",0.,1000.)
+        #fitAmpCorr[_iCh].SetParameters(-0.3,6e-13,-10.)
+        fitAmpCorr[_iCh] = TF1( 'fitAmpCorr_{0}'.format(_ch.namech[_iCh]),"pol4",0.,1000.)
+        #fitAmpCorr[_iCh] = new TF1(Form("fitAmpCorr_%s", namech[_iCh].c_str()),"pol4",0.,200.)
+
+        p_deltat_vs_amp[_iCh].Fit(fitAmpCorr[_iCh],"QNRS+")
+        fitAmpCorr[_iCh].SetLineColor(kMagenta)
+        fitAmpCorr[_iCh].Draw("same")
+        
+        _ch.latexch[_iCh].Draw("same")
+
+    c_time_vs_amp.Update()
+    printCanvas( c_time_vs_amp, _outputDir, _timeAlgo)
+    
+    return fitAmpCorr

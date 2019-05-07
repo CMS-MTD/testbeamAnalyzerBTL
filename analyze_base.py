@@ -101,6 +101,7 @@ outputDir = outputDir + '/' + args.timeAlgo + '/'
 if ( not os.path.exists(outputDir) ):
     print "Specified timeAlgo sub-directory {0} DNE.\nCREATING NOW".format(outputDir)
     os.system("mkdir {0}".format(outputDir))
+print '-- Setting outputDir = {0}'.format(outputDir)
 
 
 ###############################################################################################
@@ -118,5 +119,6 @@ if args.isCondor==True:
 ch = setChannelData( args.bar, int(args.firstRun))
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
-calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 
+timePeak, timeSigma, mipPeak = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
+ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
