@@ -5,6 +5,7 @@
 #Purpose: Worker code to process/analyze testbeam data (loosely based on Andrea Benaglia's analyze_FNAL.C code)
 
 import os, sys, argparse
+import shutil
 
 # *** 0. setup parser for command line
 parser = argparse.ArgumentParser()
@@ -77,21 +78,25 @@ outputDir = 'Runs_'+args.firstRun+'to'+args.lastRun
 if ( not os.path.exists(outputDir) ):
     print "Specified run directory {0} DNE.\nCREATING NOW".format(outputDir)
     os.system("mkdir {0}".format(outputDir))
+shutil.copy('lib/index.php',outputDir+'/index.php')
 # ** B. Sub-level directory of what bias
 outputDir = outputDir + '/' + args.biasVoltage + 'V'
 if ( not os.path.exists(outputDir) ):
     print "Specified bias voltage sub-directory {0} DNE.\nCREATING NOW".format(outputDir)
     os.system("mkdir {0}".format(outputDir))
+shutil.copy('lib/index.php',outputDir+'/index.php')
 # ** C. Sub-level directory of which bar
 outputDir = outputDir + '/' + args.bar
 if ( not os.path.exists(outputDir) ):
     print "Specified bar sub-directory {0} DNE.\nCREATING NOW".format(outputDir)
     os.system("mkdir {0}".format(outputDir))
+shutil.copy('lib/index.php',outputDir+'/index.php')
 # ** D. Sub-level directory of which time algorithm
 outputDir = outputDir + '/' + args.timeAlgo + '/'
 if ( not os.path.exists(outputDir) ):
     print "Specified timeAlgo sub-directory {0} DNE.\nCREATING NOW".format(outputDir)
     os.system("mkdir {0}".format(outputDir))
+shutil.copy('lib/index.php',outputDir+'/index.php')
 print '-- Setting outputDir = {0}'.format(outputDir)
 
 
