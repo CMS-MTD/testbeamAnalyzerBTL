@@ -71,15 +71,6 @@ else:
         print '-- Setting biasVoltage = {0}'.format(args.biasVoltage)
 
 
-
-import numpy as np
-import ROOT as rt
-import root_numpy as rtnp
-import lib.globalVariables 
-from lib.channelHandler import *
-from lib.fileHandler import *
-
-
 ## *** 1. Parse together output directory and create if does not exist
 ## ** A. Top level directory of which runs
 outputDir = 'Runs_'+args.firstRun+'to'+args.lastRun
@@ -105,11 +96,17 @@ print '-- Setting outputDir = {0}'.format(outputDir)
 
 
 ###############################################################################################
-def printCanvas( _canvas, _outptuDir, _timeAlgo):
-    return 0
-
 
 ###############################################################################################
+
+
+import numpy as np
+import ROOT as rt
+import root_numpy as rtnp
+import lib.globalVariables 
+from lib.channelHandler import *
+from lib.fileHandler import *
+
 
 outputFitInfo = open( outputDir+'/timeAndAmpFitInfo.txt', 'w' )
 dataFolder = '/eos/uscms/store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
@@ -120,5 +117,6 @@ ch = setChannelData( args.bar, int(args.firstRun))
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
 
-timePeak, timeSigma, mipPeak = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
+timePeak, timeSigma, mipPeak, h_ampCut = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
+applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
