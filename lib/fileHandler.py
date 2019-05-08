@@ -20,7 +20,7 @@ gStyle.SetTitleOffset(1.20, "X");
 gStyle.SetTitleOffset(1.80, "Y");
 gStyle.SetTitleOffset(1.60, "Z");
 
-
+   
 def printCanvas( _canvas, _outputDir, _timeAlgo):
 
     _canvas.Draw();
@@ -211,8 +211,10 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
             h_amp_cut[_iCh].Fit(fitMipPeak,"SQR")
             mip_peak[_iCh] = fitMipPeak.GetParameter(1)
             mip_peak_err[_iCh] = fitMipPeak.GetParError(1)
-            print( 'Fit Peak [{0}]: {1} +/- {2} mV'.format( _iCh, round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)) )
+            #print( 'Fit Peak [{0}]: {1} +/- {2} mV'.format( _iCh, round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)) )
             #txtOutputFitInfo << Form("Angle: %d, ", angleScan) << namech[_iCh].c_str() <<", amp peak[" << _iCh << "] = " << Form("%.2f #pm %.2f mV", mip_peak[_iCh], mip_peak_err[_iCh]) << std::endl
+            print( 'Fit Peak [{0}]: {1} +/- {2} mV'.format( _ch.namech[_iCh], round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)) )
+            #outputFitInfo.Write( 'Fit Peak [{0}]: {1} +/- {2} mV'.format( _iCh, round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)) )
             
             #TLine* lowcut = new TLine(std::max(rel_amp_cut_low*mip_peak[_iCh],ampmin_cut[_iCh]),0.,std::max(rel_amp_cut_low*mip_peak[_iCh],ampmin_cut[_iCh]),h_amp[_iCh].GetMaximum())
             #TLine* higcut = new TLine(std::min(rel_amp_cut_hig*mip_peak[_iCh],ampmax_cut[_iCh]),0.,std::min(rel_amp_cut_hig*mip_peak[_iCh],ampmax_cut[_iCh]),h_amp[_iCh].GetMaximum())
@@ -259,6 +261,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
         time_peak[_iCh] = fitTimePeak.GetParameter(1)
         time_sigma[_iCh] = fitTimePeak.GetParameter(2)
         print( 'Time Peak [{0}]: {1} +/- {2} ns'.format( _iCh, round(time_peak[_iCh],2), round(time_sigma[_iCh],2)) )
+        #outputFitInfo.Write( 'Time Peak [{0}]: {1} +/- {2} ns'.format( _iCh, round(time_peak[_iCh],2), round(time_sigma[_iCh],2)) )
         #double quantileTimePeak = GetEffSigma( h_time[iCh] )
         #std::cout << "(Quantile) time_peak[" << iCh << "] = " << quantileTimePeak <<  std::endl            
 
@@ -277,7 +280,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     #c_time.Print("c_time.png")
     printCanvas( c_time, _outputDir, _timeAlgo)
     
-    return time_peak, time_sigma, mip_peak, h_amp_cut
+    return time_peak, time_sigma, mip_peak, mip_peak_err, h_amp_cut
 
 
 def calculateAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak ):
@@ -993,12 +996,12 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
 
     printCanvas( c_timeRes_vs_XY, _outputDir, _timeAlgo)
 
-    ampCorrectedMeasurements  = [sigmaLeft, sigmaRight, sigmaAvg, fitFunc_corrX, fitFunc_corrDiff, h_deltat_diff, sigmaLeftCorr, sigmaRightCorr, sigmaAvgCorr, h_deltat_left_ampCorr, h_deltat_right_ampCorr, h_deltat_avg_ampCorr, c_timeRes_comp]
+    ampCorrectedMeasurements  = [sigmaLeft, sigmaRight, sigmaAvg, fitFunc_corrX, fitFunc_corrDiff, h_deltat_diff, sigmaLeftCorr, sigmaLeftCorr_err, sigmaRightCorr, sigmaRightCorr_err, sigmaAvgCorr, sigmaAvgCorr_err, h_deltat_left_ampCorr, h_deltat_right_ampCorr, h_deltat_avg_ampCorr, c_timeRes_comp]
 
     return ampCorrectedMeasurements
 
 
-def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak, _hAmpCut, _ampWalkCorr, _ampCorrectedMeas ):
+def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak, _mipPeak_err, _hAmpCut, _ampWalkCorr, _ampCorrectedMeas ):
     """(4) fourth loop events --> to apply pos correction"""
 
     # define histograms
@@ -1087,7 +1090,7 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
 
     print ('>>> 4th loop: selected entries {0}'.format(nSelectedEntries))
     
-    c_timeRes_comp = _ampCorrectedMeas[12]
+    c_timeRes_comp = _ampCorrectedMeas[-1]
     c_timeRes_comp.cd(2)
 
     h_deltat_wei_ampCorr.SetLineColor(kOrange+1)
@@ -1106,11 +1109,14 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
     h_deltat_avg_ampCorr_posCorr.Fit(fitdeltat_avg_ampCorr_posCorr, "QR")
     
     sigmaLeftCorr          = _ampCorrectedMeas[6]
-    sigmaRightCorr         = _ampCorrectedMeas[7]
-    sigmaAvgCorr           = _ampCorrectedMeas[8]
-    h_deltat_left_ampCorr  = _ampCorrectedMeas[9]
-    h_deltat_right_ampCorr = _ampCorrectedMeas[10]
-    h_deltat_avg_ampCorr   = _ampCorrectedMeas[11]
+    sigmaLeftCorr_err      = _ampCorrectedMeas[7]
+    sigmaRightCorr         = _ampCorrectedMeas[8]
+    sigmaRightCorr_err     = _ampCorrectedMeas[9]
+    sigmaAvgCorr           = _ampCorrectedMeas[10]
+    sigmaAvgCorr_err       = _ampCorrectedMeas[11]
+    h_deltat_left_ampCorr  = _ampCorrectedMeas[12]
+    h_deltat_right_ampCorr = _ampCorrectedMeas[13]
+    h_deltat_avg_ampCorr   = _ampCorrectedMeas[14]
     sigmaWeiCorr        = np.sqrt(pow(fitdeltat_wei_ampCorr.GetParameter(2),2)         - pow(sigma_ref,2) )
     sigmaAvgCorrPos     = np.sqrt(pow(fitdeltat_avg_ampCorr_posCorr.GetParameter(2),2) - pow(sigma_ref,2) )
     sigmaWeiCorr_err    = fitdeltat_wei_ampCorr.GetParError(2)
@@ -1124,12 +1130,14 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
     leg.SetLineStyle(1)
     leg.SetLineWidth(1)
     leg.SetFillColor(0)  
-    leg.AddEntry(h_deltat_left_ampCorr,       '#sigma^{{left}}_{{t}} = {0} ps'.format(round(sigmaLeftCorr*1000,1)), "l")
-    leg.AddEntry(h_deltat_right_ampCorr,      '#sigma^{{right}}_{{t}} = {0} ps'.format(round(sigmaRightCorr*1000,1)), "l")
-    leg.AddEntry(h_deltat_avg_ampCorr,        '#sigma^{{avg}}_{{t}} = {0} ps'.format(round(sigmaAvgCorr*1000,1)), "l")
+    leg.AddEntry(h_deltat_left_ampCorr,       '#sigma^{{left}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_right_ampCorr,      '#sigma^{{right}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaRightCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_avg_ampCorr,        '#sigma^{{avg}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)), "l")
     leg.AddEntry(h_deltat_wei_ampCorr,        '#sigma^{{wei}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)), "l")
     leg.AddEntry(h_deltat_avg_ampCorr_posCorr,'#sigma^{{avg+pos}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)), "l")
     leg.Draw("same")
+    
+    print( 'TimeReso : {0} +/- {1} ns'.format( round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)) )
 
     printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
 
@@ -1152,5 +1160,18 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
     std::cout << Form("[QUANTILE] Angle: %d, #sigma^{wei}_{t} = %.1f ps", angleScan,  quantileWei*1000) <<  std::endl;            
     std::cout << Form("[QUANTILE] Angle: %d, #sigma^{avg+pos}_{t} = %.1f ps", angleScan,  quantileAvgPos*1000) <<  std::endl;            
     """
+    outputFitInfo = open( _outputDir+'/timeAndAmpFitInfo.txt', 'w' )
+    outputFitInfo.write('OutPut {0} with {1}\n'.format(_outputDir, _timeAlgo))
+    for _iCh in range(0,_ch.NCH):
+        if _iCh > 0:
+		#outputFitInfo.write('Fit Peak [{0} ch {1}]: {2} +/- 0.0 mV\n'.format( _ch.namech[_iCh], _ch.ampch_id[_iCh], round(_mipPeak[_iCh],2)) )
+		outputFitInfo.write('Fit Peak [{0} ch {1}]: {2} +/- {3} mV\n'.format( _ch.namech[_iCh], _ch.ampch_id[_iCh], round(_mipPeak[_iCh],2), round(_mipPeak_err[_iCh],2)) )
+    outputFitInfo.write('#sigma^{{left}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{right}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaRightCorr*1000,1), round(sigmaRightCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{avg}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{wei}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{avg+pos}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)))
+    outputFitInfo.close()
 
     return
+

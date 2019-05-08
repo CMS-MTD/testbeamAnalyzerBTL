@@ -113,7 +113,7 @@ from lib.channelHandler import *
 from lib.fileHandler import *
 
 
-outputFitInfo = open( outputDir+'/timeAndAmpFitInfo.txt', 'w' )
+#outputFitInfo = open( outputDir+'/timeAndAmpFitInfo.txt', 'w' )
 dataFolder = '/eos/uscms/store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
 if args.isCondor==True:
     dataFolder = 'root://cmseos.fnal.gov//store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
@@ -122,7 +122,9 @@ ch = setChannelData( args.bar, int(args.firstRun))
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
 
-timePeak, timeSigma, mipPeak, h_ampCut = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
+timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
 ampCorrectedMeasurements = applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
-applyPositionCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr, ampCorrectedMeasurements )
+applyPositionCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr, ampCorrectedMeasurements )
+
+#outputFitInfo.close()

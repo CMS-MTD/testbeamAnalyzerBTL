@@ -31,12 +31,12 @@
     photek_highAmpCut: 850
     left_amp_digiIndex: 11
     left_time_digiIndex: 2
-    left_name: top_left
+    left_name: middle_left
     left_lowAmpCut: 100
     left_highAmpCut: 750
     right_amp_digiIndex: 14
     right_time_digiIndex: 5
-    right_name: top_right
+    right_name: middle_right
     right_lowAmpCut: 100
     right_highAmpCut: 750
     x_min: -10
@@ -55,12 +55,12 @@
     photek_highAmpCut: 850
     left_amp_digiIndex: 12
     left_time_digiIndex: 3
-    left_name: top_left
+    left_name: bottom_left
     left_lowAmpCut: 100
     left_highAmpCut: 750
     right_amp_digiIndex: 15
     right_time_digiIndex: 6
-    right_name: top_right
+    right_name: bottom_right
     right_lowAmpCut: 100
     right_highAmpCut: 750
     x_min: -10
