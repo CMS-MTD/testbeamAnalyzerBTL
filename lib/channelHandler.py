@@ -15,27 +15,28 @@ def findFirstRunNumberOfRange(_firstRun):
     _firstRunOfRange = 0
 
     for iRunNumber in _firstRunNumberOfAllRanges:
-        if _firstRun <= iRunNumber:
+        if _firstRun >= iRunNumber:
             _firstRunOfRange = iRunNumber
     
     return _firstRunOfRange
 
 
-def findLastRunNumberOfRange(_lasstRun):
+def findLastRunNumberOfRange(_lastRun):
     _lastRunNumberOfAllRanges = [7800, 7877]
     _lastRunOfRange = 0
 
     for iRunNumber in _lastRunNumberOfAllRanges:
         if _lastRun <= iRunNumber:
             _lastRunOfRange = iRunNumber
-    
+            break
+
     return _lastRunOfRange
 
 
-def setChannelData( _bar, _firstRun, _firstRun):
+def setChannelData( _bar, _firstRun, _lastRun):
     
     _firstRunOfRange = findFirstRunNumberOfRange( _firstRun )
-    _lastRunOfRange = findFirstRunNumberOfRange( _lastRun )
+    _lastRunOfRange = findLastRunNumberOfRange( _lastRun )
     _configName = 'config/config_{0}to{1}.yml'.format(_firstRunOfRange, _lastRunOfRange)
 
     if ( not os.path.exists(_configName) ):
@@ -47,30 +48,30 @@ def setChannelData( _bar, _firstRun, _firstRun):
     with open(_configName, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)    
 
-    #print( cfg[_firstRun][_bar] )
-    ch.ampch_id[0]   = int(cfg[_firstRun][_bar]['photek_amp_digiIndex'])
-    ch.timech_id[0]  = int(cfg[_firstRun][_bar]['photek_time_digiIndex']) 
-    ch.namech[0]     = cfg[_firstRun][_bar]['photek_name']
-    ch.ampmin_cut[0] = int(cfg[_firstRun][_bar]['photek_lowAmpCut'])
-    ch.ampmax_cut[0] = int(cfg[_firstRun][_bar]['photek_highAmpCut'])
-    ch.ampch_id[1]   = int(cfg[_firstRun][_bar]['left_amp_digiIndex'])
-    ch.timech_id[1]  = int(cfg[_firstRun][_bar]['left_time_digiIndex']) 
-    ch.namech[1]     = cfg[_firstRun][_bar]['left_name']
-    ch.ampmin_cut[1] = int(cfg[_firstRun][_bar]['left_lowAmpCut'])
-    ch.ampmax_cut[1] = int(cfg[_firstRun][_bar]['left_highAmpCut'])
-    ch.ampch_id[2]   = int(cfg[_firstRun][_bar]['right_amp_digiIndex'])
-    ch.timech_id[2]  = int(cfg[_firstRun][_bar]['right_time_digiIndex']) 
-    ch.namech[2]     = cfg[_firstRun][_bar]['right_name']
-    ch.ampmin_cut[2] = int(cfg[_firstRun][_bar]['right_lowAmpCut'])
-    ch.ampmax_cut[2] = int(cfg[_firstRun][_bar]['right_highAmpCut'])
-    ch.minX          = float(cfg[_firstRun][_bar]['x_min'])
-    ch.maxX          = float(cfg[_firstRun][_bar]['x_max'])
-    ch.centerX       = float(cfg[_firstRun][_bar]['bar_center_x'])
-    ch.BSX           = float(cfg[_firstRun][_bar]['bar_halfwidth_x'])
-    ch.minY          = float(cfg[_firstRun][_bar]['y_min'])
-    ch.maxY          = float(cfg[_firstRun][_bar]['y_max'])
-    ch.centerY       = float(cfg[_firstRun][_bar]['bar_center_y'])
-    ch.BSY           = float(cfg[_firstRun][_bar]['bar_halfwidth_y'])
+    #print( cfg[_firstRunOfRange][_bar] )
+    ch.ampch_id[0]   = int(cfg[_firstRunOfRange][_bar]['photek_amp_digiIndex'])
+    ch.timech_id[0]  = int(cfg[_firstRunOfRange][_bar]['photek_time_digiIndex']) 
+    ch.namech[0]     = cfg[_firstRunOfRange][_bar]['photek_name']
+    ch.ampmin_cut[0] = int(cfg[_firstRunOfRange][_bar]['photek_lowAmpCut'])
+    ch.ampmax_cut[0] = int(cfg[_firstRunOfRange][_bar]['photek_highAmpCut'])
+    ch.ampch_id[1]   = int(cfg[_firstRunOfRange][_bar]['left_amp_digiIndex'])
+    ch.timech_id[1]  = int(cfg[_firstRunOfRange][_bar]['left_time_digiIndex']) 
+    ch.namech[1]     = cfg[_firstRunOfRange][_bar]['left_name']
+    ch.ampmin_cut[1] = int(cfg[_firstRunOfRange][_bar]['left_lowAmpCut'])
+    ch.ampmax_cut[1] = int(cfg[_firstRunOfRange][_bar]['left_highAmpCut'])
+    ch.ampch_id[2]   = int(cfg[_firstRunOfRange][_bar]['right_amp_digiIndex'])
+    ch.timech_id[2]  = int(cfg[_firstRunOfRange][_bar]['right_time_digiIndex']) 
+    ch.namech[2]     = cfg[_firstRunOfRange][_bar]['right_name']
+    ch.ampmin_cut[2] = int(cfg[_firstRunOfRange][_bar]['right_lowAmpCut'])
+    ch.ampmax_cut[2] = int(cfg[_firstRunOfRange][_bar]['right_highAmpCut'])
+    ch.minX          = float(cfg[_firstRunOfRange][_bar]['x_min'])
+    ch.maxX          = float(cfg[_firstRunOfRange][_bar]['x_max'])
+    ch.centerX       = float(cfg[_firstRunOfRange][_bar]['bar_center_x'])
+    ch.BSX           = float(cfg[_firstRunOfRange][_bar]['bar_halfwidth_x'])
+    ch.minY          = float(cfg[_firstRunOfRange][_bar]['y_min'])
+    ch.maxY          = float(cfg[_firstRunOfRange][_bar]['y_max'])
+    ch.centerY       = float(cfg[_firstRunOfRange][_bar]['bar_center_y'])
+    ch.BSY           = float(cfg[_firstRunOfRange][_bar]['bar_halfwidth_y'])
 
 
     ch.lowerPosCutX = ch.centerX - ch.BSX
@@ -88,7 +89,7 @@ def setChannelData( _bar, _firstRun, _firstRun):
 
     return ch
     
-#def getChannelData( _bar, _biasVoltage, _firstRun, _lastRun):
+#def getChannelData( _bar, _biasVoltage, _firstRunOfRange, _lastRun):
 #    if _bar == "box1" or _bar=="box2" or _bar=="box3":
         
 

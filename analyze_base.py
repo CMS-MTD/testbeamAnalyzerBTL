@@ -120,7 +120,8 @@ if args.isCondor==True:
 
 ch = setChannelData( args.bar, int(args.firstRun), int(args.lastRun))
 if ch is None:
-    exit
+   exit()
+
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
 
