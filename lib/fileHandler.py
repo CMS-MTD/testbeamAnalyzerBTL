@@ -146,6 +146,8 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     h_beamXY.SetTitle(";X [mm]; Y[mm];entries")
     h_beamXY.Draw("COLZ")
 
+    printCanvas( c_beamXY, _outputDir, _timeAlgo)
+
     x_BS_min = TLine(_ch.centerX - _ch.BSX, _ch.minY, _ch.centerX - _ch.BSX, _ch.maxY)
     x_BS_max = TLine(_ch.centerX + _ch.BSX, _ch.minY, _ch.centerX + _ch.BSX, _ch.maxY)
     y_BS_min = TLine(_ch.minX, _ch.centerY - _ch.BSY, _ch.maxX, _ch.centerY-_ch.BSY)
@@ -178,6 +180,8 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
         y_BS_max.Draw("same")
         
         _ch.latexch[_iCh].Draw("same")        
+
+    printCanvas( c_amp_vs_XY, _outputDir, _timeAlgo)
   
     # ---------------------------- fitting and drawing mip peak ----------------------------
     mip_peak     = [0 for i in range(0,_ch.NCH)]
@@ -185,7 +189,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
   
     c_amp = TCanvas("c_amp","c_amp",1000,500*(_ch.NCH+1)/2)
     c_amp.Divide(2,(_ch.NCH+1)/2)
-    l_peakAmp =  TLatex()
+    l_peakAmp = [TLatex() for i in range(0,_ch.NCH)]
 
     for _iCh in range(0,_ch.NCH):
 
@@ -221,13 +225,14 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
             #lowcut.Draw("same")
             #higcut.Draw("same")
             
-            l_peakAmp = TLatex(0.45, 0.8, 'Fit Peak: {0} #pm {1} mV'.format( round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)))
-            l_peakAmp.SetNDC()
-            l_peakAmp.SetTextFont(42)
-            l_peakAmp.SetTextSize(0.03)
-            l_peakAmp.Draw("same")
+            l_peakAmp[_iCh] = TLatex(0.45, 0.8, 'Fit Peak: {0} #pm {1} mV'.format( round(mip_peak[_iCh],2), round(mip_peak_err[_iCh],2)))
+            l_peakAmp[_iCh].SetNDC()
+            l_peakAmp[_iCh].SetTextFont(42)
+            l_peakAmp[_iCh].SetTextSize(0.03)
+            l_peakAmp[_iCh].Draw("same")
             
         _ch.latexch[_iCh].Draw("same")
+
         c_amp.Update()
 
     c_amp.Update()
@@ -727,7 +732,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     sigmaRightCorr_err = fitdeltat_right_ampCorr.GetParError(2)
     sigmaAvgCorr_err   = fitdeltat_avg_ampCorr.GetParError(2)
 
-    #printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
+    printCanvas( c_timeRes_comp, _outputDir, _timeAlgo )
     
     # ---------------------------- BS cut plots ----------------------------
     fitdeltat_ampCorr_BSCut_L = TF1("fitdeltat_ampCorr_BSCut_L", "gaus", h_deltat_left_ampCorr.GetMean() -h_deltat_left_ampCorr.GetRMS()*2,  h_deltat_left_ampCorr.GetMean() +h_deltat_left_ampCorr.GetRMS()*2)
@@ -985,9 +990,10 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
             sigmaErr = fitdeltat_ampCorr_posCut_XY.GetParError(2)
       
             if (tempSigma > 0. and tempSigma < 0.5 and h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetEntries() > 20 ):
-                h2_timeRes_avg_vs_XY . Fill(selPosX,selPosY,tempSigma)
+                h2_timeRes_avg_vs_XY.Fill(selPosX,selPosY,tempSigma)
 
     c_timeRes_vs_XY = TCanvas ("c_timeRes_vs_XY","c_timeRes_vs_XY",500,500)
+    c_timeRes_vs_XY.cd()
     gStyle.SetPaintTextFormat(".3f")
     h2_timeRes_avg_vs_XY.SetStats(0)
     h2_timeRes_avg_vs_XY.Draw("COLZ,text")
@@ -1083,7 +1089,7 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
         diffCorr = -1.*fitFunc_corrDiff.Eval(time2_ampCorr-time1_ampCorr) + fitFunc_corrDiff.Eval(h_deltat_diff.GetMean())
 
         h_deltat_wei_ampCorr.Fill( deltat_wei_ampCorr )
-        h_deltat_avg_ampCorr_posCorr .Fill( deltat_avg_ampCorr + posCorr )
+        h_deltat_avg_ampCorr_posCorr.Fill( deltat_avg_ampCorr + posCorr )
         h_deltat_avg_ampCorr_diffCorr.Fill( deltat_avg_ampCorr + diffCorr )
     
         nSelectedEntries += 1
