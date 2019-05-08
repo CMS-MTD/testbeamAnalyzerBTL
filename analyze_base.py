@@ -118,7 +118,9 @@ dataFolder = '/eos/uscms/store/group/cmstestbeam/2019_04_April_CMSTiming/VME/Rec
 if args.isCondor==True:
     dataFolder = 'root://cmseos.fnal.gov//store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
 
-ch = setChannelData( args.bar, int(args.firstRun))
+ch = setChannelData( args.bar, int(args.firstRun), int(args.lastRun))
+if ch is None:
+    exit
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
 

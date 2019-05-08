@@ -7,13 +7,44 @@
 #from globalVariables import *
 import lib.globalVariables as ch
 #from lib.globalVariables import minX, maxX, minY, maxY
-import yaml
+import yaml, os
 from ROOT import TLatex
 
-def setChannelData( _bar, _firstRun):
-    configName = 'config/config_{0}.yml'.format(_firstRun)
+def findFirstRunNumberOfRange(_firstRun):
+    _firstRunNumberOfAllRanges = [7682, 7850]
+    _firstRunOfRange = 0
 
-    with open(configName, 'r') as ymlfile:
+    for iRunNumber in _firstRunNumberOfAllRanges:
+        if _firstRun <= iRunNumber:
+            _firstRunOfRange = iRunNumber
+    
+    return _firstRunOfRange
+
+
+def findLastRunNumberOfRange(_lasstRun):
+    _lastRunNumberOfAllRanges = [7800, 7877]
+    _lastRunOfRange = 0
+
+    for iRunNumber in _lastRunNumberOfAllRanges:
+        if _lastRun <= iRunNumber:
+            _lastRunOfRange = iRunNumber
+    
+    return _lastRunOfRange
+
+
+def setChannelData( _bar, _firstRun, _firstRun):
+    
+    _firstRunOfRange = findFirstRunNumberOfRange( _firstRun )
+    _lastRunOfRange = findFirstRunNumberOfRange( _lastRun )
+    _configName = 'config/config_{0}to{1}.yml'.format(_firstRunOfRange, _lastRunOfRange)
+
+    if ( not os.path.exists(_configName) ):
+        print("!!!! NO CONFIG FILE FOUND FOR RUNS [{0}, {1}]. EXITING".format(_firstRun, _lastRun))
+        return None
+    else:
+        print("!!!! Using config file: {0}".format( _configName) )
+            
+    with open(_configName, 'r') as ymlfile:
         cfg = yaml.load(ymlfile)    
 
     #print( cfg[_firstRun][_bar] )
