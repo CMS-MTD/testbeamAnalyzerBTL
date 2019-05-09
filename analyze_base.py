@@ -108,7 +108,6 @@ print '-- Setting outputDir = {0}'.format(outputDir)
 import numpy as np
 import ROOT as rt
 import root_numpy as rtnp
-import lib.globalVariables 
 from lib.channelHandler import *
 from lib.fileHandler import *
 

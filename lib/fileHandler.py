@@ -4,10 +4,9 @@
 #Date: April 30, 2019
 #Purpose: Store functions for opening files
 
-from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas, TLine, TBranch, TF1, TLegend, TGraphErrors
+from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas, TLine, TBranch, TF1, TLegend, TGraphErrors, TLatex
 from ROOT import kRed, kBlack, kBlue, kOrange, kMagenta, kYellow, kViolet
 from ROOT import gPad, gStyle
-from lib.globalVariables import *
 import lib.dataQualityHandler as dq
 from time import sleep
 import numpy as np
@@ -136,7 +135,7 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
                 
         nSelectedEntries += 1
     
-    print('\n>>> 1st loop: selected entries {0}'.format(nSelectedEntries))
+    print('>>> 1st loop: selected entries {0}'.format(nSelectedEntries))
 
     # ---------------------------- drawing beam histos ----------------------------
 
@@ -747,27 +746,27 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     for _iBSCut in range(0,_ch.NBSCUTS):
         #/left
         h_deltat_left_ampCorr_BSCut[_iBSCut].Fit(fitdeltat_ampCorr_BSCut_L, "QNR")
-        tempSigma_L =  np.sqrt(pow(fitdeltat_ampCorr_BSCut_L.GetParameter(2),2) - pow(sigma_ref, 2))  
+        tempSigma_L =  np.sqrt(pow(fitdeltat_ampCorr_BSCut_L.GetParameter(2),2) - pow(_ch.sigma_ref, 2))  
         sigmaErr_L = fitdeltat_ampCorr_BSCut_L.GetParError(2)
           
         #right
         h_deltat_right_ampCorr_BSCut[_iBSCut].Fit(fitdeltat_ampCorr_BSCut_R, "QNR")      
-        tempSigma_R =  np.sqrt(pow(fitdeltat_ampCorr_BSCut_R.GetParameter(2),2) - pow(sigma_ref, 2))  
+        tempSigma_R =  np.sqrt(pow(fitdeltat_ampCorr_BSCut_R.GetParameter(2),2) - pow(_ch.sigma_ref, 2))  
         sigmaErr_R = fitdeltat_ampCorr_BSCut_R.GetParError(2)
     
         #avg
         h_deltat_avg_ampCorr_BSCut[_iBSCut].Fit(fitdeltat_ampCorr_BSCut, "QNR")
-        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_BSCut.GetParameter(2),2) - pow(sigma_ref, 2))  
+        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_BSCut.GetParameter(2),2) - pow(_ch.sigma_ref, 2))  
         sigmaErr = fitdeltat_ampCorr_BSCut.GetParError(2)
     
         if (tempSigma>0 and tempSigma<0.5 and  h_deltat_avg_ampCorr_BSCut[_iBSCut].GetEntries()>30):
-            gdeltat_vs_BS_L.SetPoint(myPoint, BScut[_iBSCut]*2, tempSigma_L)            
+            gdeltat_vs_BS_L.SetPoint(myPoint, _ch.BScut[_iBSCut]*2, tempSigma_L)            
             gdeltat_vs_BS_L.SetPointError(myPoint,0, sigmaErr_L)    
             
-            gdeltat_vs_BS_R.SetPoint(myPoint, BScut[_iBSCut]*2, tempSigma_R)            
+            gdeltat_vs_BS_R.SetPoint(myPoint, _ch.BScut[_iBSCut]*2, tempSigma_R)            
             gdeltat_vs_BS_R.SetPointError(myPoint,0, sigmaErr_R)    
             
-            gdeltat_vs_BS.SetPoint(myPoint, BScut[_iBSCut]*2, tempSigma)            
+            gdeltat_vs_BS.SetPoint(myPoint, _ch.BScut[_iBSCut]*2, tempSigma)            
             gdeltat_vs_BS.SetPointError(myPoint,0, sigmaErr)    
             
             myPoint += 1
@@ -778,7 +777,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     gPad.SetGridy()
     gPad.SetLogx()
     #hPad = (TH1F*)( gPad.DrawFrame(BScut[NBSCUTS-1],0.02,3.*BScut[0],0.1) )
-    hPad = ( gPad.DrawFrame(BScut[NBSCUTS-1],0.02,3.*BScut[0],0.1) )
+    hPad = ( gPad.DrawFrame(_ch.BScut[_ch.NBSCUTS-1],0.02,3.*_ch.BScut[0],0.1) )
     hPad.SetTitle(";beam spot width [mm];#sigma_{t} [ns]")
     hPad.Draw()
     gdeltat_vs_BS.Draw("PLE,same")
@@ -828,7 +827,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
                                        h_deltat_avg_ampCorr_posCutX[_iPosCutX].GetMean()+h_deltat_avg_ampCorr_posCutX[_iPosCutX].GetRMS()*2.)
         h_deltat_avg_ampCorr_posCutX[_iPosCutX].Fit(fitdeltat_ampCorr_posCut, "QNR")
         selPos = _ch.lowerPosCutX+(stepX*_iPosCutX)
-        tempSigma =  np.sqrt( pow(fitdeltat_ampCorr_posCut.GetParameter(2),2) - pow(sigma_ref,2) )  
+        tempSigma =  np.sqrt( pow(fitdeltat_ampCorr_posCut.GetParameter(2),2) - pow(_ch.sigma_ref,2) )  
         sigmaErr = fitdeltat_ampCorr_posCut.GetParError(2)      
         if( tempSigma > 0. and tempSigma < 0.5 and h_deltat_avg_ampCorr_posCutX[_iPosCutX].GetEntries() > 20 ):
             g_timeRes_avg_vs_X.SetPoint(myPoint,selPos,tempSigma)            
@@ -843,7 +842,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
                                     h_deltat_left_ampCorr.GetMean()+h_deltat_left_ampCorr.GetRMS()*2.)
         h_deltat_left_ampCorr_posCutX[_iPosCutX].Fit(fitdeltat_ampCorr_posCutL, "QNR")
         selPos = _ch.lowerPosCutX+(stepX*_iPosCutX)
-        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCutL.GetParameter(2),2) - pow(sigma_ref, 2))
+        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCutL.GetParameter(2),2) - pow(_ch.sigma_ref, 2))
         sigmaErr = fitdeltat_ampCorr_posCutL.GetParError(2)
         if( tempSigma > 0. and tempSigma < 0.5 and h_deltat_left_ampCorr_posCutX[_iPosCutX].GetEntries() > 20 ):
             g_timeRes_left_vs_X.SetPoint(myPoint, selPos, tempSigma)
@@ -858,7 +857,7 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
                                        h_deltat_right_ampCorr.GetMean()+h_deltat_right_ampCorr.GetRMS()*2.)
         h_deltat_right_ampCorr_posCutX[_iPosCutX].Fit(fitdeltat_ampCorr_posCutR, "QNR")
         selPos = _ch.lowerPosCutX+(stepX*_iPosCutX)
-        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCutR.GetParameter(2),2) - pow(sigma_ref, 2))
+        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCutR.GetParameter(2),2) - pow(_ch.sigma_ref, 2))
         sigmaErr = fitdeltat_ampCorr_posCutR.GetParError(2)
         if (tempSigma > 0. and tempSigma < 0.5 and  h_deltat_right_ampCorr_posCutX[_iPosCutX].GetEntries() > 20 ):
             g_timeRes_right_vs_X.SetPoint(myPoint,selPos,tempSigma)
@@ -904,8 +903,8 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
         fitdeltat_ampCorr_posCut_avgY = TF1("fitdeltat_avg_ampCorr_posCut","gaus", h_deltat_avg_ampCorr_posCutY[_iPosCutY].GetMean()-h_deltat_avg_ampCorr_posCutY[_iPosCutY].GetRMS()*2.,
                                        h_deltat_avg_ampCorr_posCutY[_iPosCutY].GetMean()+h_deltat_avg_ampCorr_posCutY[_iPosCutY].GetRMS()*2.)
         h_deltat_avg_ampCorr_posCutY[_iPosCutY].Fit(fitdeltat_ampCorr_posCut_avgY, "QNR")
-        selPos = lowerPosCutY+(stepY*_iPosCutY)
-        tempSigma =  np.sqrt( pow(fitdeltat_ampCorr_posCut_avgY.GetParameter(2),2) - pow(sigma_ref,2) )  
+        selPos = _ch.lowerPosCutY+(stepY*_iPosCutY)
+        tempSigma =  np.sqrt( pow(fitdeltat_ampCorr_posCut_avgY.GetParameter(2),2) - pow(_ch.sigma_ref,2) )  
         sigmaErr = fitdeltat_ampCorr_posCut_avgY.GetParError(2)      
         if( tempSigma > 0. and tempSigma < 0.5 and h_deltat_avg_ampCorr_posCutY[_iPosCutY].GetEntries() > 20 ):
             g_timeRes_avg_vs_Y.SetPoint(myPoint,selPos,tempSigma)            
@@ -919,8 +918,8 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
         fitdeltat_ampCorr_posCut_leftY = TF1("fitdeltat_left_ampCorr_posCut","gaus", h_deltat_left_ampCorr.GetMean()-h_deltat_left_ampCorr.GetRMS()*2.,
                                        h_deltat_left_ampCorr.GetMean()+h_deltat_left_ampCorr.GetRMS()*2.)
         h_deltat_left_ampCorr_posCutY[_iPosCutY].Fit(fitdeltat_ampCorr_posCut_leftY, "QNR")
-        selPos = lowerPosCutY+(stepY*_iPosCutY)
-        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCut_leftY.GetParameter(2),2) - pow(sigma_ref, 2))
+        selPos = _ch.lowerPosCutY+(stepY*_iPosCutY)
+        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCut_leftY.GetParameter(2),2) - pow(_ch.sigma_ref, 2))
         sigmaErr = fitdeltat_ampCorr_posCut_leftY.GetParError(2)
         if( tempSigma > 0. and tempSigma < 0.5 and h_deltat_left_ampCorr_posCutY[_iPosCutY].GetEntries() > 20 ):
             g_timeRes_left_vs_Y.SetPoint(myPoint, selPos, tempSigma)
@@ -934,8 +933,8 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
         fitdeltat_ampCorr_posCut_rightY = TF1("fitdeltat_right_ampCorr_posCut","gaus", h_deltat_right_ampCorr.GetMean()-h_deltat_right_ampCorr.GetRMS()*2.,
                                        h_deltat_right_ampCorr.GetMean()+h_deltat_right_ampCorr.GetRMS()*2.)
         h_deltat_right_ampCorr_posCutY[_iPosCutY].Fit(fitdeltat_ampCorr_posCut_rightY, "QNR")
-        selPos = lowerPosCutY+(stepY*_iPosCutY)
-        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCut_rightY.GetParameter(2),2) - pow(sigma_ref, 2))
+        selPos = _ch.lowerPosCutY+(stepY*_iPosCutY)
+        tempSigma =  np.sqrt(pow(fitdeltat_ampCorr_posCut_rightY.GetParameter(2),2) - pow(_ch.sigma_ref, 2))
         sigmaErr = fitdeltat_ampCorr_posCut_rightY.GetParError(2)
         if (tempSigma > 0. and tempSigma < 0.5 and  h_deltat_right_ampCorr_posCutY[_iPosCutY].GetEntries() > 20 ):
             g_timeRes_right_vs_Y.SetPoint(myPoint,selPos,tempSigma)
@@ -984,9 +983,9 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
             fitdeltat_ampCorr_posCut_XY = TF1("fitdeltat_right_ampCorr_posCut","gaus", h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetMean()-h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetRMS()*2.,
                                            h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetMean()+h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetRMS()*2.)
             h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].Fit("fitdeltat_right_ampCorr_posCut","QNR")
-            selPosX = lowerPosCutX+(stepX*_iPosCutX)
-            selPosY = lowerPosCutY+(stepY*_iPosCutY)
-            tempSigma = np.sqrt( pow(fitdeltat_ampCorr_posCut_XY.GetParameter(2),2) - pow(sigma_ref,2) )
+            selPosX = _ch.lowerPosCutX+(stepX*_iPosCutX)
+            selPosY = _ch.lowerPosCutY+(stepY*_iPosCutY)
+            tempSigma = np.sqrt( pow(fitdeltat_ampCorr_posCut_XY.GetParameter(2),2) - pow(_ch.sigma_ref,2) )
             sigmaErr = fitdeltat_ampCorr_posCut_XY.GetParError(2)
       
             if (tempSigma > 0. and tempSigma < 0.5 and h_deltat_avg_ampCorr_posCutXY[_iPosCutX][_iPosCutY].GetEntries() > 20 ):
@@ -1085,7 +1084,7 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
         deltat_avg_ampCorr = 0.5*(time1_ampCorr+time2_ampCorr) - time_ref
         deltat_wei_ampCorr = ( time1_ampCorr/pow(sigmaLeft,2) + time2_ampCorr/pow(sigmaRight,2) ) / ( 1/pow(sigmaLeft,2) + 1/pow(sigmaRight,2) ) - time_ref
 
-        posCorr = -1.*fitFunc_corrX.Eval(myX) + fitFunc_corrX.Eval(centerX)
+        posCorr = -1.*fitFunc_corrX.Eval(myX) + fitFunc_corrX.Eval(_ch.centerX)
         diffCorr = -1.*fitFunc_corrDiff.Eval(time2_ampCorr-time1_ampCorr) + fitFunc_corrDiff.Eval(h_deltat_diff.GetMean())
 
         h_deltat_wei_ampCorr.Fill( deltat_wei_ampCorr )
@@ -1123,8 +1122,8 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
     h_deltat_left_ampCorr  = _ampCorrectedMeas[12]
     h_deltat_right_ampCorr = _ampCorrectedMeas[13]
     h_deltat_avg_ampCorr   = _ampCorrectedMeas[14]
-    sigmaWeiCorr        = np.sqrt(pow(fitdeltat_wei_ampCorr.GetParameter(2),2)         - pow(sigma_ref,2) )
-    sigmaAvgCorrPos     = np.sqrt(pow(fitdeltat_avg_ampCorr_posCorr.GetParameter(2),2) - pow(sigma_ref,2) )
+    sigmaWeiCorr        = np.sqrt(pow(fitdeltat_wei_ampCorr.GetParameter(2),2)         - pow(_ch.sigma_ref,2) )
+    sigmaAvgCorrPos     = np.sqrt(pow(fitdeltat_avg_ampCorr_posCorr.GetParameter(2),2) - pow(_ch.sigma_ref,2) )
     sigmaWeiCorr_err    = fitdeltat_wei_ampCorr.GetParError(2)
     sigmaAvgCorrPos_err = fitdeltat_avg_ampCorr_posCorr.GetParError(2)
     
