@@ -14,7 +14,7 @@ parser.add_argument("--firstRun", help="first run to analyze")
 parser.add_argument("--lastRun", help="last run to analyze")
 parser.add_argument("--timeAlgo", help="time fitting algorithm", default="LP2_30")
 parser.add_argument("--biasVoltage", help="bias voltage [V]")
-parser.add_argument("--isCondor", help="flag to turn off display of plots for condor submission", default=False)
+parser.add_argument("--isCondor", help="flag to turn off display of plots for condor submission", default=False, action='store_true')
 args = parser.parse_args()
 
 if len(sys.argv)==1: # no options, easy way to get help
@@ -71,6 +71,10 @@ else:
     else:
         print '-- Setting biasVoltage = {0}'.format(args.biasVoltage)
 
+# ** F. Condor submission --> turn on batch mode
+if args.isCondor==True:
+    sys.argv.append( '-b' )
+
 
 ## *** 1. Parse together output directory and create if does not exist
 ## ** A. Top level directory of which runs
@@ -114,6 +118,7 @@ from lib.fileHandler import *
 
 #outputFitInfo = open( outputDir+'/timeAndAmpFitInfo.txt', 'w' )
 dataFolder = '/eos/uscms/store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
+
 if args.isCondor==True:
     dataFolder = 'root://cmseos.fnal.gov//store/group/cmstestbeam/2019_04_April_CMSTiming/VME/RecoData/RecoWithTracks/v3/' # BBT, 4-30-19, LPC EOS
 
