@@ -10,4 +10,8 @@ Python code for analyzing BTL testbeam data
 
 
 ## Commands
-python analyze_base.py [-h] [--bar BAR] [--firstRun FIRSTRUN] [--lastRun LASTRUN] [--timeAlgo TIMEALGO] [--biasVoltage BIASVOLTAGE] [--isCondor ISCONDOR]
+# Local running
+python analyze_base.py [-h] [--bar BAR] [--firstRun FIRSTRUN] [--lastRun LASTRUN] [--timeAlgo TIMEALGO] [--biasVoltage BIASVOLTAGE]
+
+# Condor submission
+python submitRunsToCondor.py [-h] [--bar BAR] [--firstRun FIRSTRUN] [--lastRun LASTRUN] [--timeAlgo TIMEALGO] [--biasVoltage BIASVOLTAGE]

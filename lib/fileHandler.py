@@ -62,6 +62,72 @@ def returnChain( _dataFolder, _firstRun, _lastRun):
     return myTree
 
 
+def getTimeAlgorithmBranch( _chain, _timeAlgo ):
+    """ return branch of time algorithm"""  
+    time = []
+    
+    #this is a very inefficient way to do this, but adaptive branch naming is hard - BBT 05/02/19
+    if (_timeAlgo == 'LP2_20'):
+        time = _chain.LP2_20
+    elif (_timeAlgo == 'LP2_30'):
+        time = _chain.LP2_30            
+    elif (_timeAlgo == 'LP2_50'):
+        time = _chain.LP2_50
+    elif (_timeAlgo == 'IL_20'):
+        time = _chain.IL_20
+    elif (_timeAlgo == 'IL_30'):
+        time = _chain.IL_30
+    elif (_timeAlgo == 'IL_50'):
+        time = _chain.IL_50
+    
+    return time
+
+def eventHasGoodHit( _analysisStage, _timeAlgo, _myX, _myY, _chain=[], _channelInfo=[], _timePeak=[], _timeSigma=[], _mipPeak=[]):
+    """ check quality of hits. depends on stage of analysis"""
+
+    _isGoodBar = True
+
+    ## 0. Cut on hit tracking
+    if _myX == -999 or _myY == -999:
+        _isGoodBar = False
+    if _analysisStage == 0:
+        return _isGoodBar
+        
+    ## 1. Cut on BS
+    if( abs(_myX-_channelInfo.centerX) > _channelInfo.BSX or abs(_myY-_channelInfo.centerY) > _channelInfo.BSY ):
+        _isGoodBar = False
+    if _analysisStage == 1:
+        return _isGoodBar
+    
+    ## 2. MCP
+    # a. Cut on MCP amp
+    _time_ref = _chain.gaus_mean[_channelInfo.timech_id[0]]
+    if  _chain.amp[_channelInfo.ampch_id[0]] < _channelInfo.ampmin_cut[0] or _chain.amp[_channelInfo.ampch_id[0]] > _channelInfo.ampmax_cut[0] :
+        _isGoodBar = False
+
+    # b. Cut on MCP time
+    if ( _time_ref < max(_timePeak[0] - _timeSigma[0]*_channelInfo.nSigmaTimeCut,_channelInfo.lowerTimeCut) or
+         _time_ref > min(_timePeak[0] + _timeSigma[0]*_channelInfo.nSigmaTimeCut,_channelInfo.upperTimeCut) ):
+        _isGoodBar = False
+    if _analysisStage == 2:
+        return _isGoodBar
+
+
+    ## 3. Selected bar
+    _time = getTimeAlgorithmBranch( _chain, _timeAlgo )
+    if( _chain.amp[_channelInfo.ampch_id[1]] < max(_mipPeak[1]*_channelInfo.rel_amp_cut_low,_channelInfo.ampmin_cut[1]) ): _isGoodBar = False
+    if( _chain.amp[_channelInfo.ampch_id[1]] > min(_mipPeak[1]*_channelInfo.rel_amp_cut_hig,_channelInfo.ampmax_cut[1]) ): _isGoodBar = False
+    if( _chain.amp[_channelInfo.ampch_id[2]] < max(_mipPeak[2]*_channelInfo.rel_amp_cut_low,_channelInfo.ampmin_cut[2]) ): _isGoodBar = False
+    if( _chain.amp[_channelInfo.ampch_id[2]] > min(_mipPeak[2]*_channelInfo.rel_amp_cut_hig,_channelInfo.ampmax_cut[2]) ): _isGoodBar = False
+    if( _time[_channelInfo.timech_id[1]] < max(_timePeak[1]-_timeSigma[1]*_channelInfo.nSigmaTimeCut,_channelInfo.lowerTimeCut) ): _isGoodBar = False
+    if( _time[_channelInfo.timech_id[1]] > min(_timePeak[1]+_timeSigma[1]*_channelInfo.nSigmaTimeCut,_channelInfo.upperTimeCut) ): _isGoodBar = False
+    if( _time[_channelInfo.timech_id[2]] < max(_timePeak[2]-_timeSigma[2]*_channelInfo.nSigmaTimeCut,_channelInfo.lowerTimeCut) ): _isGoodBar = False
+    if( _time[_channelInfo.timech_id[2]] > min(_timePeak[2]+_timeSigma[2]*_channelInfo.nSigmaTimeCut,_channelInfo.upperTimeCut) ): _isGoodBar = False
+
+    #if _analysisStage == 3: #drop condition for final stage
+    return _isGoodBar    
+
+
 def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
     """(1) first event loop - to calculate mip peak position"""
 
@@ -96,7 +162,8 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
         myX = _chain.x_dut[0]
         myY = _chain.y_dut[0]
         
-        if myX == -999 or myY == -999:
+        # check if tracking good
+        if not eventHasGoodHit( 0, _timeAlgo, myX, myY):
             continue
     
         h_beamX.Fill( myX )
@@ -107,26 +174,12 @@ def calculatePeakPositionMIP( _chain, _ch, _timeAlgo, _outputDir ):
             h_amp[_iCh].Fill( _chain.amp[_ch.ampch_id[_iCh]] );    
             p2_amp_vs_XY[_iCh].Fill( myX, myY, _chain.amp[_ch.ampch_id[_iCh]] );
             
-            #cut on BS
-            if myX == -999 or myY == -999:
-                continue
-            if (abs(myX-_ch.centerX) > _ch.BSX) or (abs(myY-_ch.centerY) > _ch.BSY) :
+            # check if tracking good + cut on BS
+            if not eventHasGoodHit( 1, _timeAlgo, myX, myY, _chain, _ch):
                 continue
       
-            #this is a very inefficient way to do this, but adaptive branch naming is hard - BBT 05/02/19
-            time = []
-            if (_timeAlgo == 'LP2_20'):
-                time = _chain.LP2_20
-            elif (_timeAlgo == 'LP2_30'):
-                time = _chain.LP2_30            
-            elif (_timeAlgo == 'LP2_50'):
-                time = _chain.LP2_50
-            elif (_timeAlgo == 'IL_20'):
-                time = _chain.IL_20
-            elif (_timeAlgo == 'IL_30'):
-                time = _chain.IL_30
-            elif (_timeAlgo == 'IL_50'):
-                time = _chain.IL_50
+            #get branch for user-specified time algorithm
+            time = getTimeAlgorithmBranch( _chain, _timeAlgo )
 
             h_time[_iCh].Fill( time[ _ch.timech_id[_iCh]] )
             
@@ -313,38 +366,15 @@ def calculateAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
         myX = _chain.x_dut[0]
         myY = _chain.y_dut[0]
     
-        # cut on BS
-        if myX == -999 or myY == -999:
+        # check if tracking good + cut on BS + cut on MCP
+        if not eventHasGoodHit( 2, _timeAlgo, myX, myY, _chain, _ch, _timePeak, _timeSigma):
             continue
-        if( abs(myX-_ch.centerX) > _ch.BSX or abs(myY-_ch.centerY) > _ch.BSY ):
-            continue    
-    
-    
-        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
-    
-        # cut on MCP amp
-        if  _chain.amp[_ch.ampch_id[0]] < _ch.ampmin_cut[0] or _chain.amp[_ch.ampch_id[0]] > _ch.ampmax_cut[0] :
-            continue
-        # cut on MCP time
-        if ( time_ref < max(_timePeak[0] - _timeSigma[0]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) or
-             time_ref > min(_timePeak[0] + _timeSigma[0]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ):
-            continue
-    
-        # set time algorithm
-        time = []
-        if (_timeAlgo == 'LP2_20'):
-            time = _chain.LP2_20
-        elif (_timeAlgo == 'LP2_30'):
-            time = _chain.LP2_30            
-        elif (_timeAlgo == 'LP2_50'):
-            time = _chain.LP2_50
-        elif (_timeAlgo == 'IL_20'):
-            time = _chain.IL_20
-        elif (_timeAlgo == 'IL_30'):
-            time = _chain.IL_30
-        elif (_timeAlgo == 'IL_50'):
-            time = _chain.IL_50
 
+        # set time algorithm
+        time = getTimeAlgorithmBranch( _chain, _timeAlgo )
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+
+        # loop over channels
         for _iCh in range(0,_ch.NCH):
             if( _chain.amp[_ch.ampch_id[_iCh]] > max(_mipPeak[_iCh]*_ch.rel_amp_cut_low,_ch.ampmin_cut[_iCh]) and
                 _chain.amp[_ch.ampch_id[_iCh]] < min(_mipPeak[_iCh]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[_iCh]) and
@@ -462,47 +492,14 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
         myX = _chain.x_dut[0]
         myY = _chain.y_dut[0]
     
-        # cut on BS
-        if myX == -999 or myY == -999:
+        # check if tracking good + cut on BS + cut on MCP + bar selection
+        if not eventHasGoodHit( 3, _timeAlgo, myX, myY, _chain, _ch, _timePeak, _timeSigma, _mipPeak):
             continue
-        if( abs(myX-_ch.centerX) > _ch.BSX or abs(myY-_ch.centerY) > _ch.BSY ):
-            continue    
-    
-        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
-    
-        # cut on MCP amp
-        if  _chain.amp[_ch.ampch_id[0]] < _ch.ampmin_cut[0] or _chain.amp[_ch.ampch_id[0]] > _ch.ampmax_cut[0] :
-            continue
-        # cut on MCP time
-        if ( time_ref < max(_timePeak[0] - _timeSigma[0]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) or
-             time_ref > min(_timePeak[0] + _timeSigma[0]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ):
-            continue
-    
-        # set time algorithm
-        time = []
-        if (_timeAlgo == 'LP2_20'):
-            time = _chain.LP2_20
-        elif (_timeAlgo == 'LP2_30'):
-            time = _chain.LP2_30            
-        elif (_timeAlgo == 'LP2_50'):
-            time = _chain.LP2_50
-        elif (_timeAlgo == 'IL_20'):
-            time = _chain.IL_20
-        elif (_timeAlgo == 'IL_30'):
-            time = _chain.IL_30
-        elif (_timeAlgo == 'IL_50'):
-            time = _chain.IL_50
 
-        # selected bar
-        if( _chain.amp[_ch.ampch_id[1]] < max(_mipPeak[1]*_ch.rel_amp_cut_low,_ch.ampmin_cut[1]) ): continue
-        if( _chain.amp[_ch.ampch_id[1]] > min(_mipPeak[1]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[1]) ): continue
-        if( _chain.amp[_ch.ampch_id[2]] < max(_mipPeak[2]*_ch.rel_amp_cut_low,_ch.ampmin_cut[2]) ): continue
-        if( _chain.amp[_ch.ampch_id[2]] > min(_mipPeak[2]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[2]) ): continue
-        if( time[_ch.timech_id[1]] < max(_timePeak[1]-_timeSigma[1]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
-        if( time[_ch.timech_id[1]] > min(_timePeak[1]+_timeSigma[1]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
-        if( time[_ch.timech_id[2]] < max(_timePeak[2]-_timeSigma[2]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
-        if( time[_ch.timech_id[2]] > min(_timePeak[2]+_timeSigma[2]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
-    
+        # set time algorithm
+        time = getTimeAlgorithmBranch( _chain, _timeAlgo )
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+
         amp1 = _chain.amp[_ch.ampch_id[1]]
         amp2 = _chain.amp[_ch.ampch_id[2]]
         time1 = time[_ch.timech_id[1]]
@@ -1025,47 +1022,14 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
         myX = _chain.x_dut[0]
         myY = _chain.y_dut[0]
     
-        # cut on BS
-        if myX == -999 or myY == -999:
+        # check if tracking good + cut on BS + cut on MCP + bar selection
+        if not eventHasGoodHit( 3, _timeAlgo, myX, myY, _chain, _ch, _timePeak, _timeSigma, _mipPeak):
             continue
-        if( abs(myX-_ch.centerX) > _ch.BSX or abs(myY-_ch.centerY) > _ch.BSY ):
-            continue    
-    
-        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
-    
-        # cut on MCP amp
-        if  _chain.amp[_ch.ampch_id[0]] < _ch.ampmin_cut[0] or _chain.amp[_ch.ampch_id[0]] > _ch.ampmax_cut[0] :
-            continue
-        # cut on MCP time
-        if ( time_ref < max(_timePeak[0] - _timeSigma[0]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) or
-             time_ref > min(_timePeak[0] + _timeSigma[0]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ):
-            continue
-    
-        # set time algorithm
-        time = []
-        if (_timeAlgo == 'LP2_20'):
-            time = _chain.LP2_20
-        elif (_timeAlgo == 'LP2_30'):
-            time = _chain.LP2_30            
-        elif (_timeAlgo == 'LP2_50'):
-            time = _chain.LP2_50
-        elif (_timeAlgo == 'IL_20'):
-            time = _chain.IL_20
-        elif (_timeAlgo == 'IL_30'):
-            time = _chain.IL_30
-        elif (_timeAlgo == 'IL_50'):
-            time = _chain.IL_50
 
-        # selected bar
-        if( _chain.amp[_ch.ampch_id[1]] < max(_mipPeak[1]*_ch.rel_amp_cut_low,_ch.ampmin_cut[1]) ): continue
-        if( _chain.amp[_ch.ampch_id[1]] > min(_mipPeak[1]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[1]) ): continue
-        if( _chain.amp[_ch.ampch_id[2]] < max(_mipPeak[2]*_ch.rel_amp_cut_low,_ch.ampmin_cut[2]) ): continue
-        if( _chain.amp[_ch.ampch_id[2]] > min(_mipPeak[2]*_ch.rel_amp_cut_hig,_ch.ampmax_cut[2]) ): continue
-        if( time[_ch.timech_id[1]] < max(_timePeak[1]-_timeSigma[1]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
-        if( time[_ch.timech_id[1]] > min(_timePeak[1]+_timeSigma[1]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
-        if( time[_ch.timech_id[2]] < max(_timePeak[2]-_timeSigma[2]*_ch.nSigmaTimeCut,_ch.lowerTimeCut) ): continue
-        if( time[_ch.timech_id[2]] > min(_timePeak[2]+_timeSigma[2]*_ch.nSigmaTimeCut,_ch.upperTimeCut) ): continue
-    
+        # set time algorithm
+        time = getTimeAlgorithmBranch( _chain, _timeAlgo )
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+
         amp1 = _chain.amp[_ch.ampch_id[1]]
         amp2 = _chain.amp[_ch.ampch_id[2]]
         time1 = time[_ch.timech_id[1]]
@@ -1135,9 +1099,9 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
     leg.SetLineStyle(1)
     leg.SetLineWidth(1)
     leg.SetFillColor(0)  
-    leg.AddEntry(h_deltat_left_ampCorr,       '#sigma^{{left}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
-    leg.AddEntry(h_deltat_right_ampCorr,      '#sigma^{{right}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaRightCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
-    leg.AddEntry(h_deltat_avg_ampCorr,        '#sigma^{{avg}}_{{t}} = {0} #pm# {1} ps'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_left_ampCorr,       '#sigma^{{left}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_right_ampCorr,      '#sigma^{{right}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaRightCorr*1000,1), round(sigmaLeftCorr_err*1000,1)), "l")
+    leg.AddEntry(h_deltat_avg_ampCorr,        '#sigma^{{avg}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)), "l")
     leg.AddEntry(h_deltat_wei_ampCorr,        '#sigma^{{wei}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)), "l")
     leg.AddEntry(h_deltat_avg_ampCorr_posCorr,'#sigma^{{avg+pos}}_{{t}} = {0} #pm {1} ps'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)), "l")
     leg.Draw("same")
@@ -1171,11 +1135,11 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
         if _iCh > 0:
 		#outputFitInfo.write('Fit Peak [{0} ch {1}]: {2} +/- 0.0 mV\n'.format( _ch.namech[_iCh], _ch.ampch_id[_iCh], round(_mipPeak[_iCh],2)) )
 		outputFitInfo.write('Fit Peak [{0} ch {1}]: {2} +/- {3} mV\n'.format( _ch.namech[_iCh], _ch.ampch_id[_iCh], round(_mipPeak[_iCh],2), round(_mipPeak_err[_iCh],2)) )
-    outputFitInfo.write('#sigma^{{left}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)))
-    outputFitInfo.write('#sigma^{{right}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaRightCorr*1000,1), round(sigmaRightCorr_err*1000,1)))
-    outputFitInfo.write('#sigma^{{avg}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)))
-    outputFitInfo.write('#sigma^{{wei}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)))
-    outputFitInfo.write('#sigma^{{avg+pos}}_{{t}} = {0} #pm# {1} ps\n'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)))
+    outputFitInfo.write('#sigma^{{left}}_{{t}} = {0} #pm {1} ps\n'.format(round(sigmaLeftCorr*1000,1), round(sigmaLeftCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{right}}_{{t}} = {0} #pm {1} ps\n'.format(round(sigmaRightCorr*1000,1), round(sigmaRightCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{avg}}_{{t}} = {0} #pm {1} ps\n'.format(round(sigmaAvgCorr*1000,1), round(sigmaAvgCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{wei}}_{{t}} = {0} #pm {1} ps\n'.format(round(sigmaWeiCorr*1000,1), round(sigmaWeiCorr_err*1000,1)))
+    outputFitInfo.write('#sigma^{{avg+pos}}_{{t}} = {0} #pm {1} ps\n'.format(round(sigmaAvgCorrPos*1000,1), round(sigmaAvgCorrPos_err*1000,1)))
     outputFitInfo.close()
 
     return
