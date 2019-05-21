@@ -4,7 +4,7 @@
 #Date: April 30, 2019
 #Purpose: Worker code to process/analyze testbeam data (loosely based on Andrea Benaglia's analyze_FNAL.C code)
 
-import os, sys, argparse
+import os, sys, argparse, getpass
 import shutil
 
 # *** 0. setup parser for command line
@@ -133,5 +133,8 @@ timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut = calculatePeakPositionMIP( 
 ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
 ampCorrectedMeasurements = applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
 applyPositionCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr, ampCorrectedMeasurements )
+username = getpass.getuser()
+if username == 'benjtann':
+    calculatePositionResiduals(pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr)
 
 #outputFitInfo.close()

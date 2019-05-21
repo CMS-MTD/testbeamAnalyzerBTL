@@ -1144,3 +1144,76 @@ def applyPositionCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _tim
 
     return
 
+
+def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _timeSigma, _mipPeak, _mipPeak_err, _hAmpCut, _ampWalkCorr):
+    """(5) fifth loop events --> to calculate position residuals """
+
+    # define histograms
+    h_deltat_leftVright         = TH1F("h_deltat_leftVright", "deltat_leftVright", 600, -500, 2500)
+    h_deltat_leftVright_ampCorr = TH1F("h_deltat_leftVright_ampCorr", "deltat_leftVright_ampCorr", 600, -500, 2500)
+    h_deltax_leftVright         = TH1F("h_deltax_leftVright", "deltax_leftVright", 600, -500, 2500)
+    h_deltax_leftVright_ampCorr = TH1F("h_deltax_leftVright_ampCorr", "deltax_leftVright_ampCorr", 600, -500, 2500)
+
+    # event loop
+    nSelectedEntries = 0
+    chainCounter = 0
+    for entry in _chain:
+        if chainCounter%5000 ==0:
+            print( '>>> 5th loop: reading entry {0}/{1}'.format(chainCounter, _chain.GetEntries()) )
+        chainCounter += 1
+     
+        myX = _chain.x_dut[0]
+        myY = _chain.y_dut[0]
+    
+        # check if tracking good + cut on BS + cut on MCP + bar selection
+        if not eventHasGoodHit( 3, _timeAlgo, myX, myY, _chain, _ch, _timePeak, _timeSigma, _mipPeak):
+            continue
+
+        # set time algorithm
+        time = getTimeAlgorithmBranch( _chain, _timeAlgo )
+        time_ref = _chain.gaus_mean[_ch.timech_id[0]]
+
+        # get left/right SiPM data
+        amp1 = _chain.amp[_ch.ampch_id[1]]
+        amp2 = _chain.amp[_ch.ampch_id[2]]
+        time1 = time[_ch.timech_id[1]]
+        time2 = time[_ch.timech_id[2]]
+        time1_ampCorr = time1 - _ampWalkCorr[1].Eval(amp1) + _ampWalkCorr[1].Eval(_hAmpCut[1].GetMean())
+        time2_ampCorr = time2 - _ampWalkCorr[2].Eval(amp2) + _ampWalkCorr[2].Eval(_hAmpCut[2].GetMean())
+
+        #fill histograms
+        deltat         = (time2 - time1)*1000 # [ps]
+        deltat_ampCorr = (time2_ampCorr - time1_ampCorr) * 1e3 # [ps]
+        
+        c_lyso = 3e8/1.8 * 1e-12 * 1e3 # [mm/ps] ,  c/n_lyso * s/ps * mm/m
+        print("Event {0}, deltaT = {1}, deltaT_ampCorr = {2}, c_lyso = {3}".format(chainCounter, deltat, deltat_ampCorr, c_lyso))
+        
+        h_deltat_leftVright.Fill( deltat )
+        h_deltat_leftVright_ampCorr.Fill( deltat_ampCorr )
+        h_deltax_leftVright.Fill( deltat*c_lyso )
+        h_deltax_leftVright_ampCorr.Fill( deltat_ampCorr*c_lyso )
+    
+        nSelectedEntries += 1
+
+    print ('>>> 5th loop: selected entries {0}'.format(nSelectedEntries))
+
+    # make and fill canvas
+    c_leftVright_deltaT_deltaX = TCanvas ("c_leftVright_deltat_deltaX","c_leftVright_timeRes_vs_XY",1000,500)
+    c_leftVright_deltaT_deltaX.Divide(2,1)
+    c_leftVright_deltaT_deltaX.cd(1)
+    h_deltat_leftVright.SetLineColor(kBlack)
+    h_deltat_leftVright_ampCorr.SetLineColor(kRed)
+    h_deltat_leftVright.SetTitle(";t_{left} - t_{right} [ps];Entries / Bin")
+    h_deltat_leftVright.Draw()
+    h_deltat_leftVright_ampCorr.Draw("same")
+
+    c_leftVright_deltaT_deltaX.cd(2)
+    h_deltax_leftVright.SetLineColor(kBlack)
+    h_deltax_leftVright_ampCorr.SetLineColor(kRed)
+    h_deltax_leftVright.SetTitle(";x_{left} - x_{right} [mm];Entries / Bin")
+    h_deltax_leftVright.Draw()
+    h_deltax_leftVright_ampCorr.Draw("same")
+
+    printCanvas( c_leftVright_deltaT_deltaX, _outputDir, _timeAlgo)
+
+    return
