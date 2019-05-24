@@ -1149,10 +1149,14 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
     """(5) fifth loop events --> to calculate position residuals """
 
     # define histograms
-    h_deltat_leftVright         = TH1F("h_deltat_leftVright", "deltat_leftVright", 600, -500, 2500)
-    h_deltat_leftVright_ampCorr = TH1F("h_deltat_leftVright_ampCorr", "deltat_leftVright_ampCorr", 600, -500, 2500)
-    h_deltax_leftVright         = TH1F("h_deltax_leftVright", "deltax_leftVright", 600, -500, 2500)
-    h_deltax_leftVright_ampCorr = TH1F("h_deltax_leftVright_ampCorr", "deltax_leftVright_ampCorr", 600, -500, 2500)
+    h_deltat_leftVright         = TH1F("h_deltat_leftVright", "h_deltat_leftVright", 120, -600, 600)
+    h_deltat_leftVright_ampCorr = TH1F("h_deltat_leftVright_ampCorr", "h_deltat_leftVright_ampCorr", 120, -600, 600)
+    h_deltax_leftVright         = TH1F("h_deltax_leftVright", "h_deltax_leftVright", 40, -100, 100)
+    h_deltax_leftVright_ampCorr = TH1F("h_deltax_leftVright_ampCorr", "h_deltax_leftVright_ampCorr", 40, -100, 100)
+    h_x1_ampCorr                = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 50, -1000, -750)
+    h_x2_ampCorr                = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 50, -1000, -750)
+    h2_x1x2                     = TH2F("h2_x1x2", "h2_x1x2", 50, -950, -800, 50, -950, -800)
+    h2_x1x2_ampCorr             = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 50, -950, -800, 50, -950, -800)
 
     # event loop
     nSelectedEntries = 0
@@ -1184,36 +1188,73 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
         #fill histograms
         deltat         = (time2 - time1)*1000 # [ps]
         deltat_ampCorr = (time2_ampCorr - time1_ampCorr) * 1e3 # [ps]
+        t1_ampCorr = (time1_ampCorr - time_ref) * 1e3 # [ps]
+        t2_ampCorr = (time2_ampCorr - time_ref) * 1e3 # [ps]
+        t1 = (time1 - time_ref) * 1e3 # [ps]
+        t2 = (time2 - time_ref) * 1e3 # [ps]
         
         c_lyso = 3e8/1.8 * 1e-12 * 1e3 # [mm/ps] ,  c/n_lyso * s/ps * mm/m
-        print("Event {0}, deltaT = {1}, deltaT_ampCorr = {2}, c_lyso = {3}".format(chainCounter, deltat, deltat_ampCorr, c_lyso))
+        #print("[AMP CORR] Event {0}, t1 = {1}, t2 = {2}, x1 = {3}, x2 = {4}".format(chainCounter, round(t1_ampCorr,2), round(t2_ampCorr,2), round(t1_ampCorr*c_lyso,2), round(t2_ampCorr*c_lyso,2) ))
+        #print("Event {0}, t1 = {1}, t2 = {2}, x1 = {3}, x2 = {4}".format(chainCounter, round(t1,2), round(t2,2), round(t1*c_lyso,2), round(t2*c_lyso,2) ))
         
         h_deltat_leftVright.Fill( deltat )
         h_deltat_leftVright_ampCorr.Fill( deltat_ampCorr )
         h_deltax_leftVright.Fill( deltat*c_lyso )
         h_deltax_leftVright_ampCorr.Fill( deltat_ampCorr*c_lyso )
-    
+        h_x1_ampCorr.Fill( t1_ampCorr*c_lyso )
+        h_x2_ampCorr.Fill( t2_ampCorr*c_lyso )
+        h2_x1x2_ampCorr.Fill( t1_ampCorr*c_lyso, t2_ampCorr*c_lyso )
+        h2_x1x2.Fill( t1*c_lyso, t2*c_lyso )
+
         nSelectedEntries += 1
 
     print ('>>> 5th loop: selected entries {0}'.format(nSelectedEntries))
 
     # make and fill canvas
-    c_leftVright_deltaT_deltaX = TCanvas ("c_leftVright_deltat_deltaX","c_leftVright_timeRes_vs_XY",1000,500)
-    c_leftVright_deltaT_deltaX.Divide(2,1)
+    c_leftVright_deltaT_deltaX = TCanvas ("c_leftVright_deltat_deltaX","c_leftVright_deltat_deltaX",1500,500)
+    c_leftVright_deltaT_deltaX.Divide(3,1)
     c_leftVright_deltaT_deltaX.cd(1)
     h_deltat_leftVright.SetLineColor(kBlack)
     h_deltat_leftVright_ampCorr.SetLineColor(kRed)
-    h_deltat_leftVright.SetTitle(";t_{left} - t_{right} [ps];Entries / Bin")
+    h_deltat_leftVright.SetTitle(";t_{left} - t_{right} [ps];Entries / 10 ps")
     h_deltat_leftVright.Draw()
     h_deltat_leftVright_ampCorr.Draw("same")
 
     c_leftVright_deltaT_deltaX.cd(2)
     h_deltax_leftVright.SetLineColor(kBlack)
     h_deltax_leftVright_ampCorr.SetLineColor(kRed)
-    h_deltax_leftVright.SetTitle(";x_{left} - x_{right} [mm];Entries / Bin")
+    h_deltax_leftVright.SetTitle(";x_{left} - x_{right} [mm];Entries / 5 mm")
     h_deltax_leftVright.Draw()
     h_deltax_leftVright_ampCorr.Draw("same")
 
+    c_leftVright_deltaT_deltaX.cd(3)
+    h_x1_ampCorr.SetLineColor(kBlack)
+    h_x2_ampCorr.SetLineColor(kRed)
+    h_x1_ampCorr.SetTitle(";t_{hit}*c_{LYSO} [mm];Entries / 5 mm")
+    h_x1_ampCorr.Draw()
+    h_x2_ampCorr.Draw("same")
+
+    c_leftVright_x1Vx2 = TCanvas ("c_leftVright_x1Vx2","c_leftVright_x1Vx2",1000,500)
+    c_leftVright_x1Vx2.Divide(2,1)
+    c_leftVright_x1Vx2.cd(1)
+    h2_x1x2.SetTitle(";x_{left} [mm];x_{right} [mm]")
+    h2_x1x2.Draw("colz")
+    label = TLatex(0.45, 0.8, 'Uncorrected')
+    label.SetNDC()
+    label.SetTextFont(42)
+    label.SetTextSize(0.03)
+    label.Draw("same")
+
+    c_leftVright_x1Vx2.cd(2)
+    h2_x1x2_ampCorr.SetTitle(";x_{left} [mm];x_{right} [mm]")
+    h2_x1x2_ampCorr.Draw("colz")
+    label = TLatex(0.45, 0.8, 'Amp-Walk Corrected')
+    label.Draw("same")
+
+    print("[NO Correction] Correlation between x1 and x2 = {0}".format( round(h2_x1x2.GetCorrelationFactor(),3) ))
+    print("[Amp Corrected] Correlation between x1_ampCorr and x2_ampCorr = {0}".format( round(h2_x1x2_ampCorr.GetCorrelationFactor(),3) ))
+
     printCanvas( c_leftVright_deltaT_deltaX, _outputDir, _timeAlgo)
+    printCanvas( c_leftVright_x1Vx2, _outputDir, _timeAlgo)
 
     return
