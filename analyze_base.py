@@ -128,13 +128,17 @@ if ch is None:
 
 pulse = returnChain( dataFolder, args.firstRun, args.lastRun)
 
+# set booleans for user-specific studies
+doPositionResiduals = False
+if getpass.getuser() == 'benjtann':
+    doPositionResiduals = True
 
+# run analysis code
 timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut = calculatePeakPositionMIP( pulse, ch, args.timeAlgo, outputDir)
 ampWalkCorr = calculateAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak )
 ampCorrectedMeasurements = applyAmpWalkCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, h_ampCut, ampWalkCorr )
 applyPositionCorrection( pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr, ampCorrectedMeasurements )
-username = getpass.getuser()
-if username == 'benjtann':
-    calculatePositionResiduals(pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr)
+if doPositionResiduals:
+    calculatePositionResiduals(pulse, ch, args.timeAlgo, outputDir, timePeak, timeSigma, mipPeak, mipPeak_err, h_ampCut, ampWalkCorr, ampCorrectedMeasurements)
 
 #outputFitInfo.close()
