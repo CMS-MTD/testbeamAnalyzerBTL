@@ -1035,23 +1035,27 @@ def applyAmpWalkCorrection( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _time
     c_leftVright_fits = TCanvas ("c_leftVright_fits","c_leftVright_fits",1500,500)
     c_leftVright_fits.Divide(3,1)
     c_leftVright_fits.cd(1)
-    gStyle.SetOptFit(1)
     p_residual_diff_vs_X.Draw()
-    #p_residual_diff_vs_X.SetStats(0)
+    p_residual_diff_vs_X.SetStats(0)
+    gStyle.SetOptFit(1)
     p_residual_diff_vs_X.SetTitle(";X_{tracker} [mm];#Deltat [ns]")
     fitFunc_diff_vs_x.Draw("same")
     p_residual_diff_vs_X.SetMarkerStyle(21)
 
     c_leftVright_fits.cd(2)
-    p_residual_time1ampCorr_vs_X.SetTitle(";X_{tracker} [mm]; t_{left} [ps]")
+    p_residual_time1ampCorr_vs_X.SetTitle(";X_{tracker} [mm]; t_{left} - t_{MCP} [ps]")
+    #p_residual_time1ampCorr_vs_X.SetStats(0)
+    gStyle.SetOptStat(0)
+    gStyle.SetOptFit(1)
     p_residual_time1ampCorr_vs_X.Draw()
     fitFunc_time1ampCorr_vs_x.Draw("same")
 
     c_leftVright_fits.cd(3)
-    p_residual_time2ampCorr_vs_X.SetTitle(";X_{tracker} [mm]; t_{right} [ps]")
+    gStyle.SetOptFit(1011);
+    p_residual_time2ampCorr_vs_X.SetTitle(";X_{tracker} [mm]; t_{right} - t_{MCP} [ps]")
     p_residual_time2ampCorr_vs_X.Draw()
     fitFunc_time2ampCorr_vs_x.Draw("same")
-    c_leftVright_fits.Update()
+    #c_leftVright_fits.Update()
     printCanvas( c_leftVright_fits, _outputDir, _timeAlgo)
 
 
@@ -1217,9 +1221,9 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
     xMid_t1VSt2 = (fitFunc_time2ampCorr_vs_x.GetParameter(0) - fitFunc_time1ampCorr_vs_x.GetParameter(0))/(fitFunc_time1ampCorr_vs_x.GetParameter(1) - fitFunc_time2ampCorr_vs_x.GetParameter(1))
     print("[Using DeltaT] Middle of bar at tracker position {0}".format( xMid_deltaT ))
     print("[Using t1 vs t2 (amp Corr)] Middle of bar at tracker position {0}".format( round(xMid_t1VSt2,3) ))
-    t1Mid_t1     = fitFunc_time1ampCorr_vs_x.Eval(xMid_t1VSt2)
+    t1Mid_t1t2   = fitFunc_time1ampCorr_vs_x.Eval(xMid_t1VSt2)
     t1Mid_deltaT = fitFunc_time1ampCorr_vs_x.Eval(xMid_deltaT)
-    t2Mid_t1     = fitFunc_time2ampCorr_vs_x.Eval(xMid_t1VSt2)
+    t2Mid_t1t2   = fitFunc_time2ampCorr_vs_x.Eval(xMid_t1VSt2)
     t2Mid_deltaT = fitFunc_time2ampCorr_vs_x.Eval(xMid_deltaT)
 
     # get max/min from previous fits
@@ -1243,16 +1247,23 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
     h_deltat_leftVright_ampCorr  = TH1F("h_deltat_leftVright_ampCorr", "h_deltat_leftVright_ampCorr", 120, -600, 600)
     h_deltax_leftVright          = TH1F("h_deltax_leftVright", "h_deltax_leftVright", 40, -100, 100)
     h_deltax_leftVright_ampCorr  = TH1F("h_deltax_leftVright_ampCorr", "h_deltax_leftVright_ampCorr", 40, -100, 100)
-    h_x1_ampCorr                 = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 50, -1000, -750)
-    h_x2_ampCorr                 = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 50, -1000, -750)
-    h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 50, -950, -800, 50, -950, -800)
-    h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 50, -950, -800, 50, -950, -800)
-    #h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 50, xMin_t1, xMax_t1, 50, xMin_t2, xMax_t2)
-    #h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 50, xMin_t1, xMax_t1, 50, xMin_t2, xMax_t2)
-    h_residual_xFromDeltaT_vs_tracker = TH1F("h_residual_xFromDeltaT_vs_tracker", "h_residual_xFromDeltaT_vs_tracker", 40, -100, 100)
-    h_residual_xFromT1T2_vs_tracker   = TH1F("h_residual_xFromT1T2_vs_tracker", "h_residual_xFromT1T2_vs_tracker", 40, -100, 100)
+    #h_x1_ampCorr                 = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 50, -1000, -750)
+    #h_x2_ampCorr                 = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 50, -1000, -750)
+    #h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 50, -950, -800, 50, -950, -800)
+    #h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 50, -950, -800, 50, -950, -800)
+    h_x1_ampCorr                 = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 60, -150, 150)
+    h_x2_ampCorr                 = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 60, -150, 150)
+    h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 32, -80, 80, 32, -80, 80)
+    h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 32, -80, 80, 32, -80, 80)
+    h_residual_xFromDeltaT_vs_tracker = TH1F("h_residual_xFromDeltaT_vs_tracker", "h_residual_xFromDeltaT_vs_tracker", 60, -150, 150)
+    h_residual_xFromT1T2_vs_tracker   = TH1F("h_residual_xFromT1T2_vs_tracker", "h_residual_xFromT1T2_vs_tracker", 60, -150, 150)
     #h_deltaX_vs_tracker          = TH2F("h_deltaX_vs_tracker", "h_deltaX_vs_tracker", 40, -100, 100)
 
+    p_residual_vs_x  = TProfile("p_residual_vs_x", "p_residual_vs_x", _ch.NPOSCUTSX, _ch.lowerPosCutX, _ch.upperPosCutX)
+    g_residual_vs_x = TGraphErrors()
+    h_residual_xFromT1T2_vs_tracker_posCutX = [TH1F() for i in range(0,_ch.NPOSCUTSX)]
+    for _iPosCut in range(0,_ch.NPOSCUTSX):
+        h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCut]   = TH1F('h_residual_xFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 'h_residual_xFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 60, -150, 150)
 
     
     # event loop
@@ -1300,17 +1311,34 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
         h_deltat_leftVright_ampCorr.Fill( deltaT_ampCorr )
         h_deltax_leftVright.Fill( deltaX )
         h_deltax_leftVright_ampCorr.Fill( deltaX_ampCorr )
-        h_x1_ampCorr.Fill( t1_ampCorr*c_lyso )
-        h_x2_ampCorr.Fill( t2_ampCorr*c_lyso )
-        h2_x1x2_ampCorr.Fill( t1_ampCorr*c_lyso, t2_ampCorr*c_lyso )
-        h2_x1x2.Fill( t1*c_lyso, t2*c_lyso )
+        #h_x1_ampCorr.Fill( t1_ampCorr*c_lyso )
+        #h_x2_ampCorr.Fill( t2_ampCorr*c_lyso )
+        #h2_x1x2_ampCorr.Fill( t1_ampCorr*c_lyso, t2_ampCorr*c_lyso )
+        #h2_x1x2.Fill( t1*c_lyso, t2*c_lyso )
 
         xPos_from_deltaT_ampCorr = (t1_ampCorr - t1Mid_deltaT) * c_lyso + xMid_deltaT
-        xPos_from_T1T2_ampCorr   = (t1_ampCorr - t1Mid_t1) * c_lyso + xMid_t1VSt2
-       
+        xPos_from_T1T2_ampCorr   = (t1_ampCorr - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+        
+        x1Pos_from_T1T2           = (t1 - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+        x2Pos_from_T1T2           = (t2 - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+        x1Pos_from_T1T2_ampCorr   = (t1_ampCorr - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+        x2Pos_from_T1T2_ampCorr   = (t2_ampCorr - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+        h2_x1x2_ampCorr.Fill( x1Pos_from_T1T2_ampCorr, x2Pos_from_T1T2_ampCorr )
+        h2_x1x2.Fill( x1Pos_from_T1T2, x2Pos_from_T1T2 )
+        h_x1_ampCorr.Fill( x1Pos_from_T1T2_ampCorr )
+        h_x2_ampCorr.Fill( x2Pos_from_T1T2_ampCorr )
+
         h_residual_xFromDeltaT_vs_tracker.Fill( xPos_from_deltaT_ampCorr - myX )
         h_residual_xFromT1T2_vs_tracker.Fill( xPos_from_T1T2_ampCorr - myX )
         
+        p_residual_vs_x.Fill(myX, xPos_from_T1T2_ampCorr - myX)
+
+        # X dependency  
+        for _iPosCutX in range(0,_ch.NPOSCUTSX):
+            stepX = (_ch.upperPosCutX-_ch.lowerPosCutX) / _ch.NPOSCUTSX
+
+            if( myX > _ch.lowerPosCutX + _iPosCutX*stepX and  myX < _ch.lowerPosCutX + (_iPosCutX+1)*stepX ):
+                h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].Fill( xPos_from_T1T2_ampCorr - myX )
 
         nSelectedEntries += 1
 
@@ -1318,68 +1346,119 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
 
 
     # canvas for 1D SiPM comparison
-    c_leftVright_deltaT_deltaX = TCanvas ("c_leftVright_deltat_deltaX","c_leftVright_deltat_deltaX",1500,500)
-    c_leftVright_deltaT_deltaX.Divide(3,1)
-    c_leftVright_deltaT_deltaX.cd(1)
-    h_deltat_leftVright.SetLineColor(kBlack)
-    h_deltat_leftVright_ampCorr.SetLineColor(kRed)
-    h_deltat_leftVright.SetTitle(";t_{left} - t_{right} [ps];Entries / 10 ps")
-    h_deltat_leftVright.Draw()
-    h_deltat_leftVright_ampCorr.Draw("same")
-
-    c_leftVright_deltaT_deltaX.cd(2)
-    h_deltax_leftVright.SetLineColor(kBlack)
-    h_deltax_leftVright_ampCorr.SetLineColor(kRed)
-    h_deltax_leftVright.SetTitle(";x_{left} - x_{right} [mm];Entries / 5 mm")
-    h_deltax_leftVright.Draw()
-    h_deltax_leftVright_ampCorr.Draw("same")
-
-    c_leftVright_deltaT_deltaX.cd(3)
+    c_leftVright_deltaT_deltaX = TCanvas ("c_leftVright_deltat_deltaX","c_leftVright_deltat_deltaX",500,500)
+    h_x1_ampCorr.SetStats(0)
     h_x1_ampCorr.SetLineColor(kBlack)
     h_x2_ampCorr.SetLineColor(kRed)
-    h_x1_ampCorr.SetTitle(";t_{hit}*c_{LYSO} [mm];Entries / 5 mm")
-    h_x1_ampCorr.Draw()
-    h_x2_ampCorr.Draw("same")
+    h_x2_ampCorr.SetTitle(";t_{hit}*c_{LYSO} [mm];Entries / 5 mm")
+    h_x2_ampCorr.Draw()
+    h_x1_ampCorr.Draw("same")
+    leg = TLegend(0.55,0.73,0.70,0.93,'','brNDC')
+    leg.SetBorderSize(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(0.03)
+    leg.SetLineColor(1)
+    leg.SetLineStyle(1)
+    leg.SetLineWidth(1)
+    leg.SetFillColor(0)  
+    leg.AddEntry(h_x1_ampCorr, "X_{L} Amp-Corrected", "l")     
+    leg.AddEntry(h_x2_ampCorr, "X_{R} Amp-Corrected", "l")     
+    leg.Draw("same")
+
+    c_leftVright_deltaT_deltaX.Update()
+    printCanvas( c_leftVright_deltaT_deltaX, _outputDir, _timeAlgo)
 
 
     # canvas for 2D SiPM comparison
     c_leftVright_x1Vx2 = TCanvas ("c_leftVright_x1Vx2","c_leftVright_x1Vx2",1000,500)
     c_leftVright_x1Vx2.Divide(2,1)
     c_leftVright_x1Vx2.cd(1)
+    h2_x1x2.SetStats(0)
+
     h2_x1x2.SetTitle(";x_{left} [mm];x_{right} [mm]")
     h2_x1x2.Draw("colz")
     label = TLatex(0.45, 0.8, 'Uncorrected')
     label.SetNDC()
     label.SetTextFont(42)
     label.SetTextSize(0.03)
-    label.Draw("same")
+    #label.Draw("same")
 
     c_leftVright_x1Vx2.cd(2)
+    h2_x1x2_ampCorr.SetStats(0)
     h2_x1x2_ampCorr.SetTitle(";x_{left} [mm];x_{right} [mm]")
     h2_x1x2_ampCorr.Draw("colz")
     label = TLatex(0.45, 0.8, 'Amp-Walk Corrected')
-    label.Draw("same")
+    #label.Draw("same")
 
     print("[NO Correction] Correlation between x1 and x2 = {0}".format( round(h2_x1x2.GetCorrelationFactor(),3) ))
     print("[Amp Corrected] Correlation between x1_ampCorr and x2_ampCorr = {0}".format( round(h2_x1x2_ampCorr.GetCorrelationFactor(),3) ))
+    
+    c_leftVright_x1Vx2.Update()
+    printCanvas( c_leftVright_x1Vx2, _outputDir, _timeAlgo)
 
     # final residual plot
-    c_leftVright_residual = TCanvas ("c_leftVright_residual","c_leftVright_residual",1000,500)
-    c_leftVright_residual.cd(1)
+    fitResidual_T1T2 = TF1("fitResidual_T1T2","gaus",h_residual_xFromT1T2_vs_tracker.GetMean()-5.*h_residual_xFromT1T2_vs_tracker.GetRMS(),h_residual_xFromT1T2_vs_tracker.GetMean()+5.*h_residual_xFromT1T2_vs_tracker.GetRMS())
+    fitResidual_T1T2.SetLineColor(kRed)
+    h_residual_xFromT1T2_vs_tracker.Fit( fitResidual_T1T2, "R" )
+
+    fitResidual_DeltaT = TF1("fitResidual_DeltaT","gaus",h_residual_xFromDeltaT_vs_tracker.GetMean()-5.*h_residual_xFromDeltaT_vs_tracker.GetRMS(),h_residual_xFromDeltaT_vs_tracker.GetMean()+5.*h_residual_xFromDeltaT_vs_tracker.GetRMS())
+    fitResidual_DeltaT.SetLineColor(kBlack)
+    h_residual_xFromDeltaT_vs_tracker.Fit( fitResidual_DeltaT, "R" )
+    
+    c_leftVright_residual = TCanvas ("c_leftVright_residual","c_leftVright_residual",500,500)
+    c_leftVright_residual.cd()
+    h_residual_xFromDeltaT_vs_tracker.SetStats(0)
     h_residual_xFromDeltaT_vs_tracker.SetTitle("; X_{calc, amp corr.} - X_{tracker} [mm];Entries / 5 mm")
     h_residual_xFromDeltaT_vs_tracker.SetLineColor(kBlack)
     h_residual_xFromT1T2_vs_tracker.SetLineColor(kRed)
     h_residual_xFromDeltaT_vs_tracker.Draw()
     h_residual_xFromT1T2_vs_tracker.Draw("same")
 
+    leg = TLegend(0.52,0.73,0.67,0.93,'','brNDC')
+    leg.SetBorderSize(0)
+    leg.SetTextFont(42)
+    leg.SetTextSize(0.03)
+    leg.SetLineColor(1)
+    leg.SetLineStyle(1)
+    leg.SetLineWidth(1)
+    leg.SetFillColor(0)  
+    leg.AddEntry(h_residual_xFromT1T2_vs_tracker,  "#sigma_{{Indiv. SiPMs}} = {0} #pm {1}".format( round( fitResidual_T1T2.GetParameter(2), 2), round(fitResidual_T1T2.GetParError(2), 2)), "l")     
+    leg.AddEntry(h_residual_xFromDeltaT_vs_tracker,  "#sigma_{{Delta T}} = {0} #pm {1}".format( round( fitResidual_DeltaT.GetParameter(2), 2), round(fitResidual_DeltaT.GetParError(2), 2)), "l")     
+    leg.Draw("same")
 
     # update and print
-    c_leftVright_deltaT_deltaX.Update()
-    c_leftVright_x1Vx2.Update()
     c_leftVright_residual.Update()
-
-    printCanvas( c_leftVright_deltaT_deltaX, _outputDir, _timeAlgo)
-    printCanvas( c_leftVright_x1Vx2, _outputDir, _timeAlgo)
     printCanvas( c_leftVright_residual, _outputDir, _timeAlgo)
+
+
+    # final residual profile as ftn of X
+    myPoint = 0
+    for _iPosCutX in range(0,_ch.NPOSCUTSX):
+        stepX = ( _ch.upperPosCutX - _ch.lowerPosCutX ) / _ch.NPOSCUTSX
+        
+        fitResidual_posCutX = TF1("fitResidual_posCutX","gaus", h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].GetMean()-h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].GetRMS()*2.,
+                                       h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].GetMean()+h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].GetRMS()*2.)
+        h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].Fit(fitResidual_posCutX, "QNR")
+        selPos = _ch.lowerPosCutX+(stepX*_iPosCutX)
+        tempSigma =  fitResidual_posCutX.GetParameter(2)  
+        sigmaErr = fitResidual_posCutX.GetParError(2)      
+        if( tempSigma > 0. and h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCutX].GetEntries() > 20 ):
+            g_residual_vs_x.SetPoint(myPoint, selPos , tempSigma)            
+            g_residual_vs_x.SetPointError(myPoint, stepX/2/np.sqrt(12),sigmaErr)    
+            myPoint += 1
+
+
+    c_residual_vs_x = TCanvas ("c_residual_vs_x","c_residual_vs_x",500,500)
+    c_residual_vs_x.cd()
+    #p_residual_vs_x.SetStats(0)
+    g_residual_vs_x.SetTitle(";X_{tracker}; X_{calc, amp corr.} - X_{tracker}")
+    g_residual_vs_x.SetLineColor(kBlue+1)
+    g_residual_vs_x.SetMarkerColor(kBlue+1)
+    g_residual_vs_x.SetMarkerStyle(20)    
+    #g_residual_vs_x.GetYaxis().SetRangeUser(0, 0.2)
+    g_residual_vs_x.Draw("ALPE")
+
+
+    printCanvas( c_residual_vs_x, _outputDir, _timeAlgo)
 
     return
