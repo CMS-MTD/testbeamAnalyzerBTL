@@ -8,7 +8,6 @@ from ROOT import TFile, TChain, TTree, TProfile, TH1F, TH2F, TProfile2D, TCanvas
 from ROOT import kRed, kBlack, kBlue, kOrange, kMagenta, kYellow, kViolet
 from ROOT import gPad, gStyle
 import lib.dataQualityHandler as dq
-from time import sleep
 import numpy as np
 
 gStyle.SetPadTopMargin(0.05);
@@ -1210,6 +1209,7 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
     """(5) fifth loop events --> to calculate position residuals """
 
     c_lyso = 3e8/1.8 * 1e-12 * 1e3 # [mm/ps] ,  c/n_lyso * s/ps * mm/m
+    barLength = 57. # [mm] . could also be 50mm sometimes
 
     # get mean from previous fits
     fitFunc_time1ampCorr_vs_x = _ampCorrectedMeas[16]
@@ -1247,23 +1247,26 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
     h_deltat_leftVright_ampCorr  = TH1F("h_deltat_leftVright_ampCorr", "h_deltat_leftVright_ampCorr", 120, -600, 600)
     h_deltax_leftVright          = TH1F("h_deltax_leftVright", "h_deltax_leftVright", 40, -100, 100)
     h_deltax_leftVright_ampCorr  = TH1F("h_deltax_leftVright_ampCorr", "h_deltax_leftVright_ampCorr", 40, -100, 100)
-    #h_x1_ampCorr                 = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 50, -1000, -750)
-    #h_x2_ampCorr                 = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 50, -1000, -750)
-    #h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 50, -950, -800, 50, -950, -800)
-    #h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 50, -950, -800, 50, -950, -800)
     h_x1_ampCorr                 = TH1F("h_x1_ampCorr", "h_x1_ampCorr", 60, -150, 150)
     h_x2_ampCorr                 = TH1F("h_x2_ampCorr", "h_x2_ampCorr", 60, -150, 150)
     h2_x1x2                      = TH2F("h2_x1x2", "h2_x1x2", 32, -80, 80, 32, -80, 80)
     h2_x1x2_ampCorr              = TH2F("h2_x1x2_ampCorr", "h2_x1x2_ampCorr", 32, -80, 80, 32, -80, 80)
+
     h_residual_xFromDeltaT_vs_tracker = TH1F("h_residual_xFromDeltaT_vs_tracker", "h_residual_xFromDeltaT_vs_tracker", 60, -150, 150)
     h_residual_xFromT1T2_vs_tracker   = TH1F("h_residual_xFromT1T2_vs_tracker", "h_residual_xFromT1T2_vs_tracker", 60, -150, 150)
-    #h_deltaX_vs_tracker          = TH2F("h_deltaX_vs_tracker", "h_deltaX_vs_tracker", 40, -100, 100)
-
     p_residual_vs_x  = TProfile("p_residual_vs_x", "p_residual_vs_x", _ch.NPOSCUTSX, _ch.lowerPosCutX, _ch.upperPosCutX)
     g_residual_vs_x = TGraphErrors()
     h_residual_xFromT1T2_vs_tracker_posCutX = [TH1F() for i in range(0,_ch.NPOSCUTSX)]
     for _iPosCut in range(0,_ch.NPOSCUTSX):
         h_residual_xFromT1T2_vs_tracker_posCutX[_iPosCut]   = TH1F('h_residual_xFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 'h_residual_xFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 60, -150, 150)
+
+    h_residual_xAvgFromDeltaT_vs_tracker = TH1F("h_residual_xAvgFromDeltaT_vs_tracker", "h_residual_xAvgFromDeltaT_vs_tracker", 60, -150, 150)
+    h_residual_xAvgFromT1T2_vs_tracker   = TH1F("h_residual_xAvgFromT1T2_vs_tracker", "h_residual_xAvgFromT1T2_vs_tracker", 60, -150, 150)
+    p_residual_vs_xAvg  = TProfile("p_residual_vs_xAvg", "p_residual_vs_xAvg", _ch.NPOSCUTSX, _ch.lowerPosCutX, _ch.upperPosCutX)
+    g_residual_vs_xAvg = TGraphErrors()
+    h_residual_xAvgFromT1T2_vs_tracker_posCutX = [TH1F() for i in range(0,_ch.NPOSCUTSX)]
+    for _iPosCut in range(0,_ch.NPOSCUTSX):
+        h_residual_xAvgFromT1T2_vs_tracker_posCutX[_iPosCut]   = TH1F('h_residual_xAvgFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 'h_residual_xAvgFromT1T2_vs_tracker_posCutX_{0}'.format(_iPosCut), 60, -150, 150)
 
     
     # event loop
@@ -1323,6 +1326,10 @@ def calculatePositionResiduals( _chain, _ch, _timeAlgo, _outputDir, _timePeak, _
         x2Pos_from_T1T2           = (t2 - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
         x1Pos_from_T1T2_ampCorr   = (t1_ampCorr - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
         x2Pos_from_T1T2_ampCorr   = (t2_ampCorr - t1Mid_t1t2) * c_lyso + xMid_t1VSt2
+
+        xAvgFromT1T2              = 
+        xAvgFromT1T2_ampCorr      = 
+
         h2_x1x2_ampCorr.Fill( x1Pos_from_T1T2_ampCorr, x2Pos_from_T1T2_ampCorr )
         h2_x1x2.Fill( x1Pos_from_T1T2, x2Pos_from_T1T2 )
         h_x1_ampCorr.Fill( x1Pos_from_T1T2_ampCorr )
